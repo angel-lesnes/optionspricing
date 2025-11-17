@@ -7,6 +7,6 @@ Prototype Streamlit pour pricing Monte-Carlo et simulation de couverture.
 
 ```bash
 python -m venv .venv
-.\.venv\Scripts\activate # ou source .venv/bin/activate sur MacOS
+.venv\Scripts\activate # ou source .venv/bin/activate sur MacOS / Linux 
 pip install -r requirements.txt
 streamlit run app/streamlit_app.py
