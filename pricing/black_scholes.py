@@ -26,3 +26,11 @@ def bs_put_price(S, K, T, r, sigma):
 def bs_put_delta(S, K, T, r, sigma):
     return float(bs_call_delta(S, K, T, r, sigma) - 1.0)
 
+# Numerical test
+
+if __name__ == "__main__":
+    S0, K, T, r, sigma = 100, 100, 0.5, 0.01, 0.2
+    print("BS call price:", bs_call_price(S0, K, T, r, sigma))
+    print("BS call delta:", bs_call_delta(S0, K, T, r, sigma))
+    print("BS put price:", bs_put_price(S0, K, T, r, sigma))
+    print("BS put delta:", bs_put_delta(S0, K, T, r, sigma))
