@@ -16,3 +16,13 @@ def bs_call_delta(S, K, T, r, sigma):
         return 1.0 if S > K else 0.0
     d1 = (np.log(S / K) + (r + 0.5 * sigma ** 2) * T) / (sigma * sqrt(T))
     return float(norm.cdf(d1))
+
+# Put-Call parity 
+
+def bs_put_price(S, K, T, r, sigma):
+    C = bs_call_price(S, K, T, r, sigma)
+    return float(C - float(S) + K * exp(-r * T))
+
+def bs_put_delta(S, K, T, r, sigma):
+    return float(bs_call_delta(S, K, T, r, sigma) - 1.0)
+
