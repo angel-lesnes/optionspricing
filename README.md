@@ -1,6 +1,6 @@
 # optionspricing
 
-Prototype Streamlit pour pricing par Monte-Carlo et simulation de couverture delta.
+Prototype Streamlit pour pricing Monte-Carlo et simulation de couverture.
 
 
 ## Installation rapide
