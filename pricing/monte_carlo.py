@@ -76,6 +76,13 @@ def mc_price_put(S_paths, K, r, T, control_variate=False):
 
     return price
 
+def mc_price_put_parity (S_paths, K, r, T, control_variate=True):
+
+    price_call = mc_price_call(S_paths, K, r, T, control_variate=control_variate) # Put-call parity : p = c - S0 + K * exp(-rT)
+    S0 = S_paths[0, 0]
+    price_put_parity = price_call - S0 + K * exp(-r * T)
+    return price_put_parity
+
 
 if __name__ == "__main__":
     S0, K, T, r, sigma = 100, 100, 1.0, 0.05, 0.2
@@ -86,6 +93,8 @@ if __name__ == "__main__":
 
     price_call = mc_price_call(S_paths, K, r, T, control_variate=True)
     price_put = mc_price_put(S_paths, K, r, T, control_variate=True)
+    price_put_parity = mc_price_put_parity(S_paths, K, r, T, control_variate=True)
 
     print("MC Call Price:", price_call)
     print("MC Put Price:", price_put)
+    print("MC Put Price (Put-Call Parity):", price_put_parity)
