@@ -6,6 +6,7 @@ venv/
 # Python cache
 __pycache__/
 *.py[cod]
+.pytest_cache/
 
 
 # Jupyter
@@ -29,3 +30,6 @@ Thumbs.db
 # Data outputs
 *.csv
 outputs/
+
+
+*.egg-info/

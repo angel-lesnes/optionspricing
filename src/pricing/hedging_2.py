@@ -1,5 +1,5 @@
 import numpy as np
-from black_scholes import bs_call_price, bs_call_delta
+from pricing.black_scholes import bs_call_price, bs_call_delta
 
 def simulate_delta_hedge_paths(S_paths, K, r, sigma, T,
                                option_type="call",
@@ -86,7 +86,7 @@ if __name__ == "__main__":
     n_paths, n_steps = 5000, 252
 
     # génère S_paths (utilise ta fonction mc_paths_gbm)
-    from monte_carlo import mc_paths_gbm, mc_price_call, mc_price_put_parity
+    from pricing.monte_carlo import mc_paths_gbm, mc_price_call, mc_price_put_parity
 
     S_paths = mc_paths_gbm(S0, T, r, sigma, n_paths, n_steps, antithetic=True, seed=42)
 

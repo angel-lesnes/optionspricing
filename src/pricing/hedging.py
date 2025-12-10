@@ -1,5 +1,5 @@
 import numpy as np
-from black_scholes import bs_call_price, bs_call_delta
+from pricing.black_scholes import bs_call_price, bs_call_delta
 
 def simulate_delta_hedge_paths(S_paths, K, r, sigma, T, option_type="call", tc_frac=0.0):
     """
@@ -83,7 +83,7 @@ def simulate_delta_hedge_paths(S_paths, K, r, sigma, T, option_type="call", tc_f
 
 
 if __name__ == "__main__":
-    from monte_carlo import mc_paths_gbm
+    from pricing.monte_carlo import mc_paths_gbm
 
     S0, K, T, r, sigma = 100, 100, 1.0, 0.05, 0.2
     n_paths, n_steps = 5000, 252
