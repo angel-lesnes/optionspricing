@@ -50,10 +50,29 @@ def get_risk_free_rate_by_currency(currency): #taux par rapport à la devise
         return 0.03 # taux bce moyen car pas de ticker sur yfinance
     else:
         return 0.05 #taux par défaut pour les autres devises
+    
+def process_option_chain(calls, puts):
+    """
+    Nettoie les données et ajoute le Mid-Price.
+    """
+    # Fonction interne pour traiter un DF
+    def enrich_df(df):
+        # 1. Calcul du Mid-Price
+        # Si bid ou ask est 0 ou vide, on garde le lastPrice par défaut, sinon on prend la moyenne
+        df['Mid_Price'] = df.apply(
+            lambda x: (x['bid'] + x['ask']) / 2 if (x['bid'] > 0 and x['ask'] > 0) else x['lastPrice'], 
+            axis=1
+        )
+        return df
 
-def get_chain_for_expiration(ticker_obj, expiration_date): #récuperer les chaînes (ensemble d'options associées au mm actif) pour date d'expiration donnée
+    return enrich_df(calls), enrich_df(puts)
+
+# Mettez à jour votre fonction get_chain_for_expiration pour utiliser ceci :
+def get_chain_for_expiration(ticker_obj, expiration_date):
     try:
         chain = ticker_obj.option_chain(expiration_date)
-        return chain.calls, chain.puts
+        calls = chain.calls
+        puts = chain.puts
+        return process_option_chain(calls, puts) # On retourne les DFs enrichis
     except:
-        return None, None
+        return None, None    
