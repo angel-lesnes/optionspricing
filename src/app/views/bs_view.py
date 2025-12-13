@@ -7,7 +7,7 @@ import pandas as pd
 from datetime import datetime
 
 def render_bs():
-    st.header("Données de marché du sous-jacent")
+    st.header("Underlying market data")
 
 ###############################################
     ########## CHOIX DU TICKER ###########
@@ -15,19 +15,19 @@ def render_bs():
 
     col_search, col_info = st.columns([1, 2])
     with col_search:
-        ticker_input = st.text_input("Ticker (ex: AAPL, NVDA,^SPX)", value="AAPL").upper()
-        if st.button("Charger données"):
-            with st.spinner('Récupération des données marché...'):
+        ticker_input = st.text_input("Ticker (ex: AAPL, NVDA,^SPX...)", value="AAPL").upper()
+        if st.button("Load data"):
+            with st.spinner('Market data retrieval...'):
                 data = get_market_data(ticker_input)
                 if data:
                     st.session_state['market_data'] = data
                     st.session_state['current_ticker'] = ticker_input
                     st.rerun() #rechargement de la page pour affichage
                 else:
-                    st.error("Ticker introuvable.")
+                    st.error("Ticker not found. Please try another one.")
 
     if 'market_data' not in st.session_state:
-        st.info("Entrez un ticker pour commencer.")
+        st.info("Enter a ticker to begin.")
         return
 
     data = st.session_state['market_data']
@@ -36,9 +36,9 @@ def render_bs():
     ########## AFFICHAGE DONNEES SS JACENT ###########
 ##########################################################
     with col_info:
-        st.metric("Spot :", f"{data['S0']:.2f} {data['currency']}")
-        st.metric("Taux sans risque :", f"{data['r']:.2%}", help="Taux de rendement annualisé des bons du trésor US à 10 ans")
-        st.metric("Dividendes :", f"{data['q']:.2%}")
+        st.metric("Spot Price :", f"{data['S0']:.2f} {data['currency']}")
+        st.metric("Risk-free rate :", f"{data['r']:.2%}", help="Annualized yield of US Treasury bonds (10-year)")
+        st.metric("Dividends :", f"{data['q']:.2%}")
 
     st.markdown("---")
 
@@ -46,7 +46,7 @@ def render_bs():
     ########## SÉLECTION OPTION (T, K & option type) ###########
 ####################################################################
 
-    st.subheader("Options côtées")
+    st.subheader("Listed options")
 
     col_params1, col_params2, col_params3 = st.columns(3)
     
@@ -55,11 +55,11 @@ def render_bs():
     with col_params1: #Maturité
         exp_dates = data['expirations']
         if not exp_dates:
-            st.warning("⚠️ Aucune donnée d'option disponible.")
-            st.info("Essayez un ticker d'action plus liquide (ex: AAPL, MSFT, TSLA).")
+            st.warning("⚠️ No option data available.")
+            st.info("Try a more liquid stock ticker (e.g., AAPL, MSFT, TSLA).")
             return
             
-        selected_date = st.selectbox("Maturité (Expiration)", exp_dates)
+        selected_date = st.selectbox("Maturity (expiration date)", exp_dates)
         
         #calcul du t en années
         days = (datetime.strptime(selected_date, '%Y-%m-%d') - datetime.now()).days
@@ -74,8 +74,8 @@ def render_bs():
         chain_df = calls if option_type == "Call" else puts
         
         if chain_df.empty:
-            st.warning("⚠️ Aucune donnée d'option disponible.")
-            st.info("Essayez avec une autre maturité.")
+            st.warning("⚠️ No option data available.")
+            st.info("Try another expiration date.")
             return
 
         strikes = chain_df['strike'].values
@@ -110,7 +110,7 @@ def render_bs():
     
 ########## Etape 1 : mid price calcul ##########
     if mid_price > 0:
-        with st.spinner("Calcul IV (Mid-Price)..."):
+        with st.spinner("Computing implied volatility (Mid-Price)..."):
             iv_mid = implied_volatility(
                 S=S0_val, K=selected_strike, T=T_market, r=r_val, 
                 price=mid_price, call_put=option_type.lower(), q=q_val
@@ -120,11 +120,11 @@ def render_bs():
             final_sigma = iv_mid
             final_price_ref = mid_price
             source_type = "Mid-Price : (Bid - Ask) / 2"
-            status_msg = "✅ Volatilité implicite extraite du Mid-Price."
+            status_msg = "✅ Implied volatility extracted computed (Brent Method) from Mid-Price."
 
 ########## Etape 2 : last price calcul ##########
     if np.isnan(final_sigma) and last_price > 0:
-        with st.spinner("Calcul IV (Last Price)..."):
+        with st.spinner("Computing implied volatility (Last Price)..."):
             iv_last = implied_volatility(
                 S=S0_val, K=selected_strike, T=T_market, r=r_val, 
                 price=last_price, call_put=option_type.lower(), q=q_val
@@ -134,25 +134,21 @@ def render_bs():
             final_sigma = iv_last
             final_price_ref = last_price
             source_type = "Last Price (Yahoo Finance)"
-            status_msg = "⚠️ Mid-Price invalide/absent. " \
-            "Volatilité implicite extraite du Last Price."
-
+            status_msg = "⚠️ Mid-Price invalid/missing. Implied volatility computed (Brent Method) from Last Price."
 ########## Etape 3 : import yfinance ##########
     if np.isnan(final_sigma):
         if yahoo_iv > 0.01 and not pd.isna(yahoo_iv):
             final_sigma = yahoo_iv
             final_price_ref = last_price 
             source_type = "Last Price (Yahoo Finance)"
-            status_msg = "⚠️ Échec du calcul de la volatilité (conditions d'arbitrage non-respectées). " \
-            "Utilisation de la volatilité extraite de Yahoo Finance."
+            status_msg = "⚠️ Volatility compute failed (arbitrage conditions not met). Using implied volatility from Yahoo Finance."
 
 ########## Etape 4 : fallback ##########
     if np.isnan(final_sigma):
         final_sigma = 0.25 
         final_price_ref = last_price if last_price > 0 else 0.01 # éviter div par 0
         source_type = "Last Price (Yahoo Finance)"
-        status_msg = "❌ Données de marché inexploitables. " \
-        "Volatilité arbitraire (25%) utilisée."
+        status_msg = "❌ Market data unusable. Arbitrary volatility (25%) used."
 
     # attention à bien assigner les valeurs finales
     sigma_market = final_sigma
@@ -163,54 +159,57 @@ def render_bs():
 ##################################################
 
     with col_params3:
-        st.metric("Prix de marché", f"{market_price:.2f}", help=f"{source_type}")
-        st.metric("Volatilité Implicite", f"{sigma_market:.2%}", help=status_msg)
+        st.metric("Market Price", f"{market_price:.2f}")
+        with st.expander("ℹ️ Price details"):
+            st.markdown(f"{source_type}")
+        st.metric("Implied Volatility", f"{sigma_market:.2%}")
+        with st.expander("ℹ️ Volatility details"):
+            st.markdown(f"{status_msg}")
 
 ######################################################
     ########## PARAMÈTRES MODIFIABLES ###########
 ######################################################
 
-    st.subheader("Paramètres du Modèle")
-    st.caption("Vous pouvez modifier les valeurs ci-dessous pour simuler des scénarios.")
+    st.subheader("Black-Scholes Model Parameters")
+    st.caption("You can modify the values below to simulate different scenarios.")
 
     c1, c2, c3, c4, c5, c6 = st.columns(6) 
     with c1:
-        S = st.number_input("Spot S₀", value=float(data['S0']))
+        S = st.number_input("Spot (S₀)", value=float(data['S0']))
     with c2:
-        K = st.number_input("Strike K", value=float(selected_strike))
+        K = st.number_input("Strike (K)", value=float(selected_strike))
     with c3:
-        T = st.number_input("Maturité T (ans)", value=float(T_market), format="%.4f")
+        T = st.number_input("Maturity in years (T)", value=float(T_market), format="%.4f")
     with c4:
-        r = st.number_input("Taux r", value=float(data['r']), format="%.4f", help="Taux sans risque")
+        r = st.number_input("Risk-free rate (r)", value=float(data['r']), format="%.4f", help="The common practice is to use OIS rates")
     with c5:
-        q = st.number_input("Dividende q", value=float(data['q']), format="%.4f", help="Rendement du dividende annualisé")
+        q = st.number_input("Dividend yield (q)", value=float(data['q']), format="%.4f", help="Annualized dividend yield of the underlying")
     with c6:
-        sigma = st.number_input("Volatilité σ", value=float(sigma_market), format="%.4f")
-
+        sigma = st.number_input("Volatility (σ)", value=float(sigma_market), format="%.4f")
 
 #####################################
     ########## PRICING ###########
 #####################################
 
-    if st.button("Pricer"):
+    if st.button("Click for pricing"):
         if option_type == "Call":
             price_theo = bs_call_price(S, K, T, r, sigma, q)
         else:
             price_theo = bs_put_price(S, K, T, r, sigma, q)
         
-        st.write(f"## Prix Théorique : {price_theo:.4f} {data['currency']}")
+        st.write(f"## Theoretical price : {price_theo:.4f} {data['currency']}")
         
         diff = price_theo - market_price
         diff_percent = (price_theo - market_price) / market_price * 100 if market_price > 0.01 else 0
-        st.write(f"Écart vs Marché : {diff:.4f} ({diff_percent:.1f}%)") 
+        st.write(f"Gap (Theory / Market) : {diff:.4f} ({diff_percent:.1f}%)") 
 
-        st.write("### 💡 Interprétation de l'écart")
+        st.write("### 💡 Interpretation")
         if abs(diff_percent) < 5:
-             st.success("Votre modèle est très proche du marché ! La volatilité utilisée est cohérente.") #vert
+             st.success("Your model is very close to the market! The volatility used is consistent.") #vert
         elif diff_percent > 0:
-             st.warning(f"Votre modèle est plus cher que le marché (+{diff_percent:.1f}%). Cela suggère que le marché anticipe une volatilité implicite inférieure à {sigma:.2%}.") #jaune
+             st.warning(f"Your model is more expensive than the market (+{diff_percent:.1f}%). This suggests that the market anticipates a lower implied volatility than {sigma:.2%}.") #jaune
         else:
-             st.error(f"Votre modèle est moins cher que le marché ({diff_percent:.1f}%). Le marché 'price' une volatilité plus forte (Smile) ou un risque d'événement.") #rouge
+             st.error(f"Your model is cheaper than the market ({diff_percent:.1f}%). The market prices higher volatility or event risk.") #rouge
 
     st.markdown("---")
 
@@ -218,7 +217,7 @@ def render_bs():
     ########## GRAPHS ###########
 #####################################
 
-    st.subheader("📊 Analyse Visuelle : Théorie vs Marché")
+    st.subheader("📊 Visual analysis")
 
 ########## data ##########
     subset = chain_df[
@@ -244,7 +243,7 @@ def render_bs():
         return np.nan
 
 ########## Intégration IV au df ##########
-    with st.spinner("Génération du Smile de Volatilité (Nettoyage des données)..."):
+    with st.spinner("Generation of the volatility Smile (Data cleaning)..."):
         subset['Computed_IV'] = subset.apply(get_robust_iv_for_plot, axis=1)
 
 #si valeur manquante pour le plot, interpolation linéaire
@@ -258,25 +257,24 @@ def render_bs():
     )
 
 ########## AFFICHAGE DES GRAPHS ##########
-    tab1, tab2, tab3 = st.tabs(["Écart de prix", "Écart de prix (%)", "Smile de Volatilité"])
+    tab1, tab2, tab3 = st.tabs(["Price gap", "Price gap (%)", "Volatility Smile"])
 
     # GRAPH 1 : PRIX 
     with tab1:
         fig = go.Figure()
-        fig.add_trace(go.Scatter(x=subset['strike'], y=subset['Mid_Price'], mode='lines+markers', name='Prix Marché (Mid-Price)', marker=dict(color='blue', opacity=0.5)))
-        fig.add_trace(go.Scatter(x=subset['strike'], y=subset['BS_Price_Input'], mode='lines', name='Prix Black-Scholes', line=dict(color='red', dash='dash')))
+        fig.add_trace(go.Scatter(x=subset['strike'], y=subset['Mid_Price'], mode='lines+markers', name='Market Price', marker=dict(color='blue', opacity=0.5)))
+        fig.add_trace(go.Scatter(x=subset['strike'], y=subset['BS_Price_Input'], mode='lines', name='Black-Scholes Price', line=dict(color='red', dash='dash')))
         fig.add_vline(x=data['S0'], line_dash="dot", annotation_text="Spot")
-        fig.update_layout(title=f"Comparaison du prix d'un {option_type} par Strike", xaxis_title="Strike", yaxis_title="Prix de l'Option")
+        fig.update_layout(title=f"Comparison of the price of a {option_type} by Strike", xaxis_title="Strike", yaxis_title="Option Price")
         st.plotly_chart(fig, width='stretch')
-        # 
 
     # GRAPH 2 : DIFF %
     with tab2:
         subset['Diff_Pct'] = (subset['BS_Price_Input'] - subset['Mid_Price']) / subset['Mid_Price']
         fig_diff = go.Figure()
-        fig_diff.add_trace(go.Bar(x=subset['strike'], y=subset['Diff_Pct'], marker_color=subset['Diff_Pct'].apply(lambda x: 'red' if x < 0 else 'green'), name='Écart %'))
+        fig_diff.add_trace(go.Bar(x=subset['strike'], y=subset['Diff_Pct'], marker_color=subset['Diff_Pct'].apply(lambda x: 'red' if x < 0 else 'green'), name='Gap (%)'))
         fig_diff.add_vline(x=data['S0'], line_dash="dot", annotation_text="Spot")
-        fig_diff.update_layout(yaxis_tickformat=".1%", title="Sur/Sous-évaluation du modèle Black-Scholes par Strike", xaxis_title="Strike", yaxis_title="Écart Relatif (%)")
+        fig_diff.update_layout(yaxis_tickformat=".1%", title="Over/Underestimation of the Black-Scholes Model by Strike", xaxis_title="Strike", yaxis_title="Relative Gap (%)")
         st.plotly_chart(fig_diff, width='stretch')
 
     # GRAPH 3 : IV
@@ -288,7 +286,7 @@ def render_bs():
             x=subset['strike'], 
             y=subset['Computed_IV'], 
             mode='lines+markers',
-            name='Volatilité Implicite',
+            name='Implied Volatility',
             line=dict(color='blue', shape='spline')
         ))
         
@@ -297,9 +295,9 @@ def render_bs():
             x=subset['strike'], 
             y=[sigma] * len(subset),
             mode='lines',
-            name='Volatilité choisie du modèle',
+            name='Volatility chosen in the model',
             line=dict(color='red', dash='dash')
         ))
         fig_vol.add_vline(x=data['S0'], line_dash="dot", annotation_text="Spot")
-        fig_vol.update_layout(yaxis_tickformat=".1%", title="Smile de volatilité par rapport au Strike", xaxis_title="Strike", yaxis_title="Volatilité Implicite")
+        fig_vol.update_layout(yaxis_tickformat=".1%", title="Volatility Smile compared to the Strike", xaxis_title="Strike", yaxis_title="Implied Volatility")
         st.plotly_chart(fig_vol, width='stretch')
