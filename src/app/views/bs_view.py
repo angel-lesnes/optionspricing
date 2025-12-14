@@ -205,11 +205,22 @@ def render_bs():
 
         st.write("### 💡 Interpretation")
         if abs(diff_percent) < 5:
-             st.success("Your model is very close to the market! The volatility used is consistent.") #vert
+             st.success(
+                 f"🎯 **Perfect Match!** You are aligned with the market consensus.\n\n"
+                 f"The market prices this option with a volatility of **{sigma_market:.2%}**, and you used **{sigma:.2%}**."
+             ) #vert
         elif diff_percent > 0:
-             st.warning(f"Your model is more expensive than the market (+{diff_percent:.1f}%). This suggests that the market anticipates a lower implied volatility than {sigma:.2%}.") #jaune
+             st.warning(
+                 f"📉 **Bearish on Volatility?** Your price is higher than the market.\n\n"
+                 f"You assume a volatility of **{sigma:.2%}**, but the market is only pricing in **{sigma_market:.2%}**.\n"
+                 f"*Meaning: You think the stock will move MORE than what the market expects.*"
+             ) #jaune
         else:
-             st.error(f"Your model is cheaper than the market ({diff_percent:.1f}%). The market prices higher volatility or event risk.") #rouge
+             st.error(
+                 f"📈 **Bullish on Volatility?** Your price is lower than the market.\n\n"
+                 f"You assume a volatility of **{sigma:.2%}**, but the market is pricing in **{sigma_market:.2%}** (Risk Premium).\n"
+                 f"*Meaning: The market is protecting itself against a bigger move than you anticipate.*"
+             ) #rouge
 
     st.markdown("---")
 
@@ -257,7 +268,7 @@ def render_bs():
     )
 
 ########## AFFICHAGE DES GRAPHS ##########
-    tab1, tab2, tab3 = st.tabs(["Price gap", "Price gap (%)", "Volatility Smile"])
+    tab1, tab2, tab3, tab4 = st.tabs(["Price gap", "Price gap (%)", "Volatility Smile", "Price and Spread Comparison"])
 
     # GRAPH 1 : PRIX 
     with tab1:
@@ -301,3 +312,39 @@ def render_bs():
         fig_vol.add_vline(x=data['S0'], line_dash="dot", annotation_text="Spot")
         fig_vol.update_layout(yaxis_tickformat=".1%", title="Volatility Smile compared to the Strike", xaxis_title="Strike", yaxis_title="Implied Volatility")
         st.plotly_chart(fig_vol, width='stretch')
+
+    with tab4:
+        st.caption("Are you within the spread? The gray area represents the Bid-Ask spread (Liquidity). If your Red Line is inside, your price is realistic.")
+        
+        fig = go.Figure()
+
+        # 1. Zone Bid-Ask (Le Tunnel)
+        # On doit gérer les Bid/Ask à 0 qui cassent le graph
+        subset['ask_clean'] = subset['ask'].replace(0, np.nan).fillna(subset['lastPrice'])
+        subset['bid_clean'] = subset['bid'].replace(0, np.nan).fillna(subset['lastPrice'])
+
+        fig.add_trace(go.Scatter(
+            x=subset['strike'], y=subset['ask_clean'],
+            mode='lines', line=dict(width=0), showlegend=False, hoverinfo='skip'
+        ))
+        fig.add_trace(go.Scatter(
+            x=subset['strike'], y=subset['bid_clean'],
+            mode='lines', fill='tonexty', fillcolor='rgba(0, 100, 255, 0.2)', line=dict(width=0),
+            name='Bid-Ask Spread'
+        ))
+
+        # 2. Mid Price
+        fig.add_trace(go.Scatter(
+            x=subset['strike'], y=subset['Mid_Price'],
+            mode='markers', name='Market Mid-Price', marker=dict(color='blue', size=4)
+        ))
+
+        # 3. Ton Modèle
+        fig.add_trace(go.Scatter(
+            x=subset['strike'], y=subset['BS_Price_Input'],
+            mode='lines', name=f'Your Model (σ={sigma:.1%})', line=dict(color='red', width=2)
+        ))
+
+        fig.add_vline(x=data['S0'], line_dash="dot", annotation_text="Spot")
+        fig.update_layout(title="Can you trade this price?", xaxis_title="Strike", yaxis_title="Option Price")
+        st.plotly_chart(fig, width='stretch')
