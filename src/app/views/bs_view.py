@@ -159,7 +159,7 @@ def render_bs():
 ##################################################
 
     with col_params3:
-        st.metric("Market Price", f"{market_price:.2f}")
+        st.metric("Market Price", f"{market_price:.2f} $")
         with st.expander("ℹ️ Price details"):
             st.markdown(f"{source_type}")
         st.metric("Implied Volatility", f"{sigma_market:.2%}")
@@ -201,27 +201,47 @@ def render_bs():
         
         diff = price_theo - market_price
         diff_percent = (price_theo - market_price) / market_price * 100 if market_price > 0.01 else 0
-        st.write(f"Gap (Theory / Market) : {diff:.4f} ({diff_percent:.1f}%)") 
+        col_res1, col_res2 = st.columns(2)
+        with col_res1:
+            st.metric("Price Gap", f"{diff:+.2f} $ ({diff_percent:+.1f}%)")
+        with col_res2:
+             sigma_diff = sigma - sigma_market
+             st.metric("Volatility Gap", f"{sigma_diff*100:+.2f} %")
 
-        st.write("### 💡 Interpretation")
-        if abs(diff_percent) < 5:
-             st.success(
-                 f"🎯 **Perfect Match!** You are aligned with the market consensus.\n\n"
-                 f"The market prices this option with a volatility of **{sigma_market:.2%}**, and you used **{sigma:.2%}**."
-             ) #vert
-        elif diff_percent > 0:
-             st.warning(
-                 f"📉 **Bearish on Volatility?** Your price is higher than the market.\n\n"
-                 f"You assume a volatility of **{sigma:.2%}**, but the market is only pricing in **{sigma_market:.2%}**.\n"
-                 f"*Meaning: You think the stock will move MORE than what the market expects.*"
-             ) #jaune
-        else:
-             st.error(
-                 f"📈 **Bullish on Volatility?** Your price is lower than the market.\n\n"
-                 f"You assume a volatility of **{sigma:.2%}**, but the market is pricing in **{sigma_market:.2%}** (Risk Premium).\n"
-                 f"*Meaning: The market is protecting itself against a bigger move than you anticipate.*"
-             ) #rouge
+        with st.expander("💡 Click to analyze the gap"):
 
+            # Détection précise des changements
+            params_changed = []
+            if abs(data['S0'] - S) > 0.01: params_changed.append("Spot Price")
+            if abs(data['r'] - r) > 0.001: params_changed.append("Risk-free Rate")
+            if abs(data['q'] - q) > 0.001: params_changed.append("Dividend Yield")
+            if abs(selected_strike - K) > 0.01: params_changed.append("Strike") 
+            if abs(T_market - T) > 0.001: params_changed.append("Maturity")
+            if abs(sigma_diff) > 0.001: params_changed.append("Volatility")
+
+            if params_changed:
+                st.info(f"ℹ️ **Simulation Mode :** You have modified: **{', '.join(params_changed)}**.")
+                st.write(f"You are comparing a **theoretical option** with custom parameters against the **real market option**.")
+                
+                if diff > 0:
+                    st.write(f"👉 Your simulation results in a price **${diff:.2f} higher** than the current market price.")
+                else:
+                    st.write(f"👉 Your simulation results in a price **${abs(diff):.2f} lower** than the current market price.")
+            
+            if abs(sigma_diff) > 0.01 :
+                st.info(f"ℹ️ **Volatility Analysis :** You are using your own volatility input.")
+                if sigma_diff > 0:
+                     st.warning(
+                         f"📈 **You are bullish on volatility** - You assume a higher volatility than the market.\n\n"
+                         f"*Meaning : You think the stock will move MORE than what the market expects.*"
+                     )
+                else:
+                     st.error(
+                         f"📉 **You are bearish on volatility** - You assume a lower volatility than the market.\n\n"
+                         f"*Meaning : The market is protecting itself against a bigger move than you anticipate.*"
+                     )
+            if not params_changed and abs(sigma_diff) < 0.001:
+                st.info(f"ℹ️ You are using the exact same parameters as the market option. Your theoretical price matches perfectly the market price.")
     st.markdown("---")
 
 #####################################
@@ -272,6 +292,7 @@ def render_bs():
 
     # GRAPH 1 : PRIX 
     with tab1:
+        st.caption("⚠️ Volatility used to compute model price for each strike is your input.")
         fig = go.Figure()
         fig.add_trace(go.Scatter(x=subset['strike'], y=subset['Mid_Price'], mode='lines+markers', name='Market Price', marker=dict(color='blue', opacity=0.5)))
         fig.add_trace(go.Scatter(x=subset['strike'], y=subset['BS_Price_Input'], mode='lines', name='Black-Scholes Price', line=dict(color='red', dash='dash')))
