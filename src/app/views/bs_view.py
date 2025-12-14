@@ -274,12 +274,11 @@ def render_bs():
         return np.nan
 
 ########## Intégration IV au df ##########
-    with st.spinner("Generation of the volatility Smile (Data cleaning)..."):
+    with st.spinner("Generating graphs..."):
         subset['Computed_IV'] = subset.apply(get_robust_iv_for_plot, axis=1)
 
-#si valeur manquante pour le plot, interpolation linéaire
-    subset['Computed_IV'] = subset['Computed_IV'].interpolate(method='linear', limit_direction='both')
-    subset['Computed_IV'] = subset['Computed_IV'].fillna(0.25) # Valeur par défaut si tout est vide
+#si valeur manquante pour le plot, interpolation linéaire ou fallback de 0.25
+    subset['Computed_IV'] = subset['Computed_IV'].interpolate(method='linear', limit_direction='both').fillna(0.25) 
 
 ########## Intégration prix BS au df ##########
     subset['BS_Price_Input'] = subset['strike'].apply(
@@ -287,30 +286,30 @@ def render_bs():
         else bs_put_price(data['S0'], k, T, r, sigma, q)
     )
 
+########## Intégration diff (prix bs - prix marché) ##########
+    subset['Diff_Abs'] = subset['BS_Price_Input'] - subset['Mid_Price']
+
 ########## AFFICHAGE DES GRAPHS ##########
-    tab1, tab2, tab3, tab4 = st.tabs(["Price gap", "Price gap (%)", "Volatility Smile", "Price and Spread Comparison"])
+    tab1, tab2 = st.tabs(["Price gap", "Volatility Smile"])
 
     # GRAPH 1 : PRIX 
     with tab1:
-        st.caption("⚠️ Volatility used to compute model price for each strike is your input.")
+        st.caption("⚠️ Volatility used to compute model price for each strike = your input. Volatility used to compute market price = implied volatility.")
         fig = go.Figure()
         fig.add_trace(go.Scatter(x=subset['strike'], y=subset['Mid_Price'], mode='lines+markers', name='Market Price', marker=dict(color='blue', opacity=0.5)))
         fig.add_trace(go.Scatter(x=subset['strike'], y=subset['BS_Price_Input'], mode='lines', name='Black-Scholes Price', line=dict(color='red', dash='dash')))
         fig.add_vline(x=data['S0'], line_dash="dot", annotation_text="Spot")
-        fig.update_layout(title=f"Comparison of the price of a {option_type} by Strike", xaxis_title="Strike", yaxis_title="Option Price")
+        fig.update_layout(title=f"Comparison of the price of a {option_type} by Strike", xaxis_title="Strike (K)", yaxis_title="Option Price")
         st.plotly_chart(fig, width='stretch')
 
-    # GRAPH 2 : DIFF %
-    with tab2:
-        subset['Diff_Pct'] = (subset['BS_Price_Input'] - subset['Mid_Price']) / subset['Mid_Price']
-        fig_diff = go.Figure()
-        fig_diff.add_trace(go.Bar(x=subset['strike'], y=subset['Diff_Pct'], marker_color=subset['Diff_Pct'].apply(lambda x: 'red' if x < 0 else 'green'), name='Gap (%)'))
-        fig_diff.add_vline(x=data['S0'], line_dash="dot", annotation_text="Spot")
-        fig_diff.update_layout(yaxis_tickformat=".1%", title="Over/Underestimation of the Black-Scholes Model by Strike", xaxis_title="Strike", yaxis_title="Relative Gap (%)")
-        st.plotly_chart(fig_diff, width='stretch')
+        fig2 = go.Figure()
+        fig2.add_trace(go.Bar(x=subset['strike'], y=subset['Diff_Abs'], marker_color=subset['Diff_Abs'].apply(lambda x: 'red' if x < 0 else 'green'), name='Gap ($)'))
+        fig2.add_vline(x=data['S0'], line_dash="dot", annotation_text="Spot")
+        fig2.update_layout(title="Difference between Model and Market Prices", xaxis_title="Strike (K)", yaxis_title="Gap ($)")
+        st.plotly_chart(fig2, width='stretch')
 
-    # GRAPH 3 : IV
-    with tab3:
+    # GRAPH 2 : IV
+    with tab2:
         fig_vol = go.Figure()
         
         # bleu = IV
@@ -333,39 +332,3 @@ def render_bs():
         fig_vol.add_vline(x=data['S0'], line_dash="dot", annotation_text="Spot")
         fig_vol.update_layout(yaxis_tickformat=".1%", title="Volatility Smile compared to the Strike", xaxis_title="Strike", yaxis_title="Implied Volatility")
         st.plotly_chart(fig_vol, width='stretch')
-
-    with tab4:
-        st.caption("Are you within the spread? The gray area represents the Bid-Ask spread (Liquidity). If your Red Line is inside, your price is realistic.")
-        
-        fig = go.Figure()
-
-        # 1. Zone Bid-Ask (Le Tunnel)
-        # On doit gérer les Bid/Ask à 0 qui cassent le graph
-        subset['ask_clean'] = subset['ask'].replace(0, np.nan).fillna(subset['lastPrice'])
-        subset['bid_clean'] = subset['bid'].replace(0, np.nan).fillna(subset['lastPrice'])
-
-        fig.add_trace(go.Scatter(
-            x=subset['strike'], y=subset['ask_clean'],
-            mode='lines', line=dict(width=0), showlegend=False, hoverinfo='skip'
-        ))
-        fig.add_trace(go.Scatter(
-            x=subset['strike'], y=subset['bid_clean'],
-            mode='lines', fill='tonexty', fillcolor='rgba(0, 100, 255, 0.2)', line=dict(width=0),
-            name='Bid-Ask Spread'
-        ))
-
-        # 2. Mid Price
-        fig.add_trace(go.Scatter(
-            x=subset['strike'], y=subset['Mid_Price'],
-            mode='markers', name='Market Mid-Price', marker=dict(color='blue', size=4)
-        ))
-
-        # 3. Ton Modèle
-        fig.add_trace(go.Scatter(
-            x=subset['strike'], y=subset['BS_Price_Input'],
-            mode='lines', name=f'Your Model (σ={sigma:.1%})', line=dict(color='red', width=2)
-        ))
-
-        fig.add_vline(x=data['S0'], line_dash="dot", annotation_text="Spot")
-        fig.update_layout(title="Can you trade this price?", xaxis_title="Strike", yaxis_title="Option Price")
-        st.plotly_chart(fig, width='stretch')
