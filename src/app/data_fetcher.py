@@ -18,8 +18,12 @@ def get_market_data(ticker_symbol): # données de marché pour un ticker donné
         r = get_risk_free_rate_by_currency(currency)
         
         #3. --> Dividend Yield (q)
-        q = info.get('dividendYield', 0.0) 
-        if q is None: q = 0.0
+        q_yfinance = info.get('dividendYield', 0.0) 
+        if q_yfinance != 0.0:
+            q = q_yfinance / 100.0
+        else:
+            q = 0.0
+
 
         #4. --> Dates d'expiration
         expirations = ticker.options

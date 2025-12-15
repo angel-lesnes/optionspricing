@@ -17,7 +17,7 @@ st.markdown(
 with st.sidebar:
     #st.image="lien"
     st.header("Method Selection")
-    method = st.selectbox("Choose a pricing method:", ["Black-Scholes", "Monte Carlo"])
+    method = st.selectbox("Choose a pricing method:", ["Black-Scholes", "Binomial Tree (American)","Monte Carlo"])
     st.markdown("---")
 
     #disclaimer
@@ -36,6 +36,9 @@ st.write(
 if method == "Black-Scholes":
     from app.views.bs_view import render_bs 
     render_bs()
+elif method == "Binomial Tree (American)":
+    from app.views.american_view import render_american
+    render_american()
 elif method == "Monte Carlo":
     from app.views.mc_view import render_mc
     render_mc()
