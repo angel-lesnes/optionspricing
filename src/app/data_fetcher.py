@@ -1,3 +1,4 @@
+import streamlit as st
 import yfinance as yf
 import pandas as pd
 from datetime import datetime
@@ -5,6 +6,8 @@ from datetime import datetime
 ###########################################################################
     ########## Données de marché ss jacent + taux ss risque ###########
 ###########################################################################
+
+@st.cache_data(ttl=3600, show_spinner=False)
 
 def get_market_data(ticker_symbol): # données de marché pour un ticker donné
     try:
@@ -37,7 +40,6 @@ def get_market_data(ticker_symbol): # données de marché pour un ticker donné
             "r": r,
             "q": q,
             "expirations": expirations,
-            "ticker_obj": ticker #on met le ticker ici pour récupérer les chaînes d'options après
         }
     except Exception as e:
         print(f"Erreur data: {e}")
@@ -76,8 +78,10 @@ def process_option_chain(calls, puts):
     ########## chaînes d'option ###########
 ###############################################
 
-def get_chain_for_expiration(ticker_obj, expiration_date):
+@st.cache_data(ttl=3600, show_spinner=False)
+def get_chain_for_expiration(ticker_symbol, expiration_date):
     try:
+        ticker_obj = yf.Ticker(ticker_symbol)
         chain = ticker_obj.option_chain(expiration_date)
         calls = chain.calls
         puts = chain.puts

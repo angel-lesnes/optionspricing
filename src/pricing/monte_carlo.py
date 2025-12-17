@@ -7,7 +7,7 @@ def mc_paths_gbm(S0, T, r, sigma, n_paths, n_steps, antithetic=True, seed=None):
     dt = T / n_steps
     shape = (n_paths, n_steps)
 
-    # Antithetic variates 
+    # Antithetic variates : génération des paires de chemins opposés (Z et -Z) pour que les erreurs s'annulent
     if antithetic:
         half_paths = n_paths // 2
         z_half = rng.standard_normal((half_paths, n_steps))
@@ -21,7 +21,7 @@ def mc_paths_gbm(S0, T, r, sigma, n_paths, n_steps, antithetic=True, seed=None):
     else:
         z = rng.standard_normal(shape)
 
-    # Generate paths 
+    # Génération des chemins
     increments = (r - 0.5 * sigma**2) * dt + sigma * sqrt(dt) * z
     log_returns = np.cumsum(increments, axis=1)
     log_prices = np.hstack([np.zeros((log_returns.shape[0], 1)), log_returns])
@@ -38,7 +38,7 @@ def mc_price_call(S_paths, K, r, T, control_variate=False):
     if not control_variate:
         return price
 
-    # Control variate basé sur E[ST] analytique
+    # Control variate : basé sur moyenne théorique du ss jacent pour corriger
     S0 = S_paths[0, 0]
     theoretical_ST = S0 * exp(r * T)
 

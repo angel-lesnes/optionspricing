@@ -8,7 +8,9 @@ from app.data_fetcher import get_market_data, get_chain_for_expiration
 from pricing.greeks import calculate_greeks
 
 def render_bs():
-    st.header("Underlying market data")
+    st.header("📜 Black-Scholes")
+    st.markdown("---")
+    st.subheader("🗃️ Underlying market data")
 
 ###############################################
     ########## CHOIX DU TICKER ###########
@@ -16,7 +18,7 @@ def render_bs():
 
     col_search, col_info = st.columns([1, 2])
     with col_search:
-        ticker_input = st.text_input("Ticker (ex : AAPL, NVDA,^SPX...)", value="AAPL").upper()
+        ticker_input = st.text_input("Ticker (e.g. : AAPL, NVDA,^SPX...)", value="AAPL").upper()
         if st.button("Load data"):
             with st.spinner('Market data retrieval...'):
                 data = get_market_data(ticker_input)
@@ -28,7 +30,7 @@ def render_bs():
                     st.error("Ticker not found. Please try another one.")
 
     if 'market_data' not in st.session_state:
-        st.info("Enter a ticker to begin.")
+        st.info("Enter a ticker and click on the button to begin.")
         return
 
     data = st.session_state['market_data']
@@ -37,9 +39,9 @@ def render_bs():
     ########## AFFICHAGE DONNEES SS JACENT ###########
 ##########################################################
     with col_info:
-        st.metric("Spot Price :", f"{data['S0']:.2f} {data['currency']}")
-        st.metric("Risk-free rate :", f"{data['r']:.2%}", help="Annualized yield of US Treasury bonds (10-year)")
-        st.metric("Dividends :", f"{data['q']:.2%}")
+        st.metric("Spot Price", f"{data['S0']:.2f} {data['currency']}")
+        st.metric("Risk-free Rate", f"{data['r']:.2%}", help="Annualized yield of US Treasury bonds (10-year)")
+        st.metric("Dividend Yield", f"{data['q']:.2%}")
 
     st.markdown("---")
 
@@ -47,7 +49,7 @@ def render_bs():
     ########## SÉLECTION OPTION (T, K & option type) ###########
 ####################################################################
 
-    st.subheader("Listed options")
+    st.subheader("🏷️ Listed options")
 
     col_params1, col_params2, col_params3 = st.columns(3)
     
@@ -57,10 +59,10 @@ def render_bs():
         exp_dates = data['expirations']
         if not exp_dates:
             st.warning("⚠️ No option data available.")
-            st.info("Try a more liquid stock ticker (e.g., AAPL, MSFT, TSLA).")
+            st.info("Try a more liquid stock ticker (e.g. : AAPL, MSFT, TSLA).")
             return
             
-        selected_date = st.selectbox("Maturity (expiration date)", exp_dates)
+        selected_date = st.selectbox("Expiration date (maturity)", exp_dates)
         
         #calcul du t en années
         days = (datetime.strptime(selected_date, '%Y-%m-%d') - datetime.now()).days
@@ -68,7 +70,7 @@ def render_bs():
 
 ########## Option type & strike ##########
 
-    calls, puts = get_chain_for_expiration(data['ticker_obj'], selected_date) 
+    calls, puts = get_chain_for_expiration(ticker_input, selected_date) 
 
     with col_params2:
         option_type = st.selectbox("Type", ["Call", "Put"])
@@ -120,7 +122,7 @@ def render_bs():
         if not np.isnan(iv_mid):
             final_sigma = iv_mid
             final_price_ref = mid_price
-            source_type = "Mid-Price : (Bid - Ask) / 2"
+            source_type = r"Mid-Price : $(\frac{\text{Bid} + \text{Ask}}{2})$"
             status_msg = "✅ Implied volatility extracted computed (Brent Method) from Mid-Price."
 
 ########## Etape 2 : last price calcul ##########
@@ -161,7 +163,7 @@ def render_bs():
 ##################################################
 
     with col_params3:
-        st.metric("Market Price", f"{market_price:.4f} $")
+        st.metric("Market Price", f"{market_price:.2f} $")
         with st.expander("ℹ️ Price details"):
             st.markdown(f"{source_type}")
         st.metric("Implied Volatility", f"{sigma_market:.2%}")
@@ -181,11 +183,11 @@ def render_bs():
     with c2:
         K = st.number_input("Strike (K)", value=float(selected_strike))
     with c3:
-        T = st.number_input("Maturity in years (T)", value=float(T_market), format="%.4f")
+        T = st.number_input("Maturity (T)", value=float(T_market), format="%.4f", help ="In years")
     with c4:
-        r = st.number_input("Risk-free rate (r)", value=float(data['r']), format="%.4f", help="The common practice is to use OIS rates")
+        r = st.number_input("Risk-free Rate (r)", value=float(data['r']), format="%.4f", help="The common practice is to use OIS rates")
     with c5:
-        q = st.number_input("Dividend yield (q)", value=float(data['q']), format="%.4f", help="Annualized dividend yield of the underlying")
+        q = st.number_input("Dividend Yield (q)", value=float(data['q']), format="%.4f", help="Annualized dividend yield of the underlying")
     with c6:
         sigma = st.number_input("Volatility (σ)", value=float(sigma_market), format="%.4f")
 
@@ -209,14 +211,14 @@ def render_bs():
         diff_percent = (price_theo - market_price) / market_price * 100 if market_price > 0.01 else 0
         col_res1, col_res2 = st.columns(2)
         with col_res1:
-            st.metric("Price Gap", f"{diff:+.4f} $ ({diff_percent:+.2f}%)")
+            st.metric("Price Gap", f"{diff:+.4f} $ ({diff_percent:+.2f}%)", help = "Difference between your simulation price and market price")
         with col_res2:
              sigma_diff = sigma - sigma_market
-             st.metric("Volatility Gap", f"{sigma_diff*100:+.2f} %")
+             st.metric("Volatility Gap", f"{sigma_diff*100:+.2f} %", help = "Difference between your input and implied volatility")
 
 ########## Détection des changements ##########
 
-        with st.expander("💡 Click to analyze the gap"):
+        with st.expander("🔎 Click to analyze the gap"):
 
             params_changed = []
             if abs(data['S0'] - S) > 0.01: params_changed.append("Spot Price")
@@ -229,7 +231,7 @@ def render_bs():
 ########## Interprétation ##########
 
             if params_changed:
-                st.info(f"ℹ️ **Simulation Mode :** You have modified: **{', '.join(params_changed)}**.")
+                st.info(f"ℹ️ **Simulation Mode ➜** You have modified : **{', '.join(params_changed)}**.")
                 st.write(f"You are comparing a **theoretical option** with custom parameters against the **real market option**.")
                 
                 if diff > 0:
@@ -241,12 +243,12 @@ def render_bs():
                 st.info(f"ℹ️ **Volatility Analysis :** You are using your own volatility input.")
                 if sigma_diff > 0:
                      st.warning(
-                         f"📈 **You are bullish on volatility** - You assume a higher volatility than the market.\n\n"
+                         f"📈 **You are bullish on volatility** : You assume a higher volatility than the market.\n\n"
                          f"*Meaning : You think the stock will move MORE than what the market expects.*"
                      )
                 else:
                      st.error(
-                         f"📉 **You are bearish on volatility** - You assume a lower volatility than the market.\n\n"
+                         f"📉 **You are bearish on volatility** : You assume a lower volatility than the market.\n\n"
                          f"*Meaning : The market is protecting itself against a bigger move than you anticipate.*"
                      )
             if not params_changed and abs(sigma_diff) < 0.001:
@@ -258,9 +260,8 @@ def render_bs():
 ################################################################
 
     st.subheader("📊 Analysis tools")
-    st.caption(
-    f"⚠️ Volatility used to compute **model price** for each strike = **your input**.\n\n "
-    f"⚠️ Volatility used to compute **market price** = **implied volatility**.")
+    st.caption("⚠️ Datas used to compute **model price** for each strike = **your inputs**. | Data used to compute **market price** = **market datas**. ⚠️", help = "Implied volatility also change for each strike of market price when your input volatility is stable.")
+    st.caption("➜ This allows you to compare your model with market sentiment.")
 
 ########## création df avec strikes ##########
     subset = chain_df[
@@ -299,236 +300,237 @@ def render_bs():
                                     ##########################################
                                     ########## AFFICHAGE DES GRAPHS ##########
                                     ##########################################
-    tab1, tab2, tab3 = st.tabs(["Price gap", "Volatility Smile", "Greeks"])
+    with st.spinner("Creating graphs and analysis..."):
+        tab1, tab2, tab3 = st.tabs(["↕️ Price gap", "😊 Volatility Smile", "🏛️ Greeks"])
 
-                                ########## Onglet 1 : Analyse prix ##########
-    with tab1:
-        
-### Graph 1 : comparaison prix BS et marché ###
-        fig_price = go.Figure()
-        fig_price.add_trace(go.Scatter(
-            x=subset['strike'], y=subset['Mid_Price'], 
-            mode='lines+markers', name='Market Price', 
-            marker=dict(color='blue', opacity=0.6)
-        ))
-        fig_price.add_trace(go.Scatter(
-            x=subset['strike'], y=subset['BS_Price_Graph'], 
-            mode='lines', name='Black-Scholes (Model)', 
-            line=dict(color='red', dash='dash')
-        ))
-        fig_price.add_vline(x=S, line_dash="dot", annotation_text="Spot", annotation_position="top left")
-        fig_price.update_layout(title=f"Price Curve: Market vs Model", xaxis_title="Strike", yaxis_title="Price ($)")
-        st.plotly_chart(fig_price, width='stretch')
-
-### Outil sélection $/% pour graph 2 ###
-
-        gap_unit = st.radio(
-            "Select Gap Unit:", 
-            ["Absolute Value ($)", "Percentage (%)"], 
-            horizontal=True,
-            key="bs_gap_unit" # Clé unique pour éviter les conflits
-        )
-
-        # Calcul de l'écart selon le choix
-        if gap_unit == "Absolute Value ($)":
-            subset['Gap_Display'] = subset['BS_Price_Graph'] - subset['Mid_Price']
-            y_title = "Gap ($)"
-            hover_template = "%{y:.2f} $"
-        else:
-            subset['Gap_Display'] = (subset['BS_Price_Graph'] - subset['Mid_Price']) / subset['Mid_Price'] * 100
-            subset['Gap_Display'] = subset['Gap_Display'].fillna(0)
-            y_title = "Gap (%)"
-            hover_template = "%{y:.2f} %"
-
-### Graph 2 : Histogramme price gap ###
-
-        fig_gap = go.Figure()
-        fig_gap.add_trace(go.Bar(
-            x=subset['strike'], y=subset['Gap_Display'],
-            marker_color=subset['Gap_Display'].apply(lambda x: 'red' if x < 0 else 'green'),
-            name='Gap',
-            hovertemplate=f"Strike: %{{x}}<br>Gap: {hover_template}"
-        ))
-        fig_gap.add_vline(x=S, line_dash="dot", annotation_text="Spot")
-        fig_gap.update_layout(title=f"Discrepancy: Model - Market [{gap_unit}]", xaxis_title="Strike", yaxis_title=y_title)
-        st.plotly_chart(fig_gap, width='stretch')
-
-                                ########## Onglet 2 : IV ##########
-
-    with tab2:
-        fig_vol = go.Figure()
-        
-        # bleu = IV
-        fig_vol.add_trace(go.Scatter(
-            x=subset['strike'], 
-            y=subset['Computed_IV'], 
-            mode='lines+markers',
-            name='Implied Volatility',
-            line=dict(color='blue', shape='spline')
-        ))
-        
-        # rouge = modèle input
-        fig_vol.add_trace(go.Scatter(
-            x=subset['strike'], 
-            y=[sigma] * len(subset),
-            mode='lines',
-            name='Volatility BS (your input)',
-            line=dict(color='red', dash='dash')
-        ))
-        fig_vol.add_vline(x=data['S0'], line_dash="dot", annotation_text="Spot")
-        fig_vol.update_layout(yaxis_tickformat=".1%", title="Volatility Smile according to the strike", xaxis_title="Strike", yaxis_title="Implied Volatility")
-        st.plotly_chart(fig_vol, width='stretch')
-
-                                ########## Onglet 3 : Greeks ##########
-
-    with tab3:
-
-### Explications ###
-        
-        st.subheader("Sensitivities / Risk Analysis : Greeks")
-        st.expander("❓  **What are the Greeks ?**", expanded=False).markdown(r"""
-            The Greeks are measures of risk and sensitivity of an option price to changes in the underlying parameters of the Black-Scholes model.                                                              
-            *Here ( $V$ ) represents the option price.*
+                                    ########## Onglet 1 : Analyse prix ##########
+        with tab1:
             
-            * **Delta $\Delta$** : **Underlying Price Sensitivity** ($\frac{\partial V}{\partial S}$).
-                * *Definition :* Option price variation if the underlying price changes by $1.
-                * *Example :* $\Delta$ = 0.5 ➜ If Spot +1\$, Option Price +0.5\$.
-            * **Gamma $\Gamma$** : **Delta Sensitivity to Price** ($\frac{\partial^2 V}{\partial S^2}$).
-                * *Definition :* Measures the rate of change in Delta for a $1 change in the underlying price.                               
-                                 High Gamma means Delta changes rapidly, requiring more frequent hedging.
-                * *Example :* $\Gamma$ = 0.05 ➜ If Spot +1\$, $\Delta$ +0.05.
-            * **Theta $\Theta$** : **Time Decay** ($\frac{\partial V}{\partial t}$).
-                * *Definition :* Amount of value the option loses *per unity of time*, all else being equal.   
-                                 It is the daily cost for the option holder.
-                * *Example :* $\Theta$ (Daily) = -0.10\$ ➜ The option loses 0.10\$ in value tomorrow.
-            * **Vega $\mathcal{V}$** : **Volatility Sensitivity** ($\frac{\partial V}{\partial \sigma}$).
-                * *Definition :* Option price variation if Volatility changes by *1 point (i.e., 1% = 0.01)*.
-                * *Example :* $\mathcal{V}$ = 0.20 ➜ If Volatility +1%, Option Price +0.20\$.
-            * **Rho $\rho$** : **Risk-Free Rate Sensitivity** ($\frac{\partial V}{\partial r}$).
-                * *Definition :* Option price variation if the risk-free rate ($r$) changes by *1 point*.
-                * *Example :* $\rho$ = 0.15 ➜ If $r$ +1%, Option Price +0.15\$.
-            """)
+    ### Graph 1 : comparaison prix BS et marché ###
+            fig_price = go.Figure()
+            fig_price.add_trace(go.Scatter(
+                x=subset['strike'], y=subset['Mid_Price'], 
+                mode='lines+markers', name='Market Options', 
+                marker=dict(color='blue', opacity=0.6)
+            ))
+            fig_price.add_trace(go.Scatter(
+                x=subset['strike'], y=subset['BS_Price_Graph'], 
+                mode='lines', name='Black-Scholes Options', 
+                line=dict(color='red', dash='dash')
+            ))
+            fig_price.add_vline(x=S, line_dash="dot", annotation_text="Spot", annotation_position="top right")
+            fig_price.update_layout(title=f"Price curves", xaxis_title="Strike", yaxis_title="Price ($)")
+            st.plotly_chart(fig_price, width='stretch')
 
-### Calcul ###
-        
-        # Greeks Modèle (avec inputs utilisateur)
-        greeks_model = calculate_greeks(S, K, T, r, sigma, q, option_type)
-        # Greeks Marché (avec paramètres réels/implicites)
-        greeks_market = calculate_greeks(S0_val, selected_strike, T_market, data['r'], sigma_market, data['q'], option_type)
-        #Rappel : ces variables sont tirées de yfinance et initialisées en début de script
+    ### Outil sélection $/% pour graph 2 ###
 
-### Création du df + affichage ###
+            gap_unit = st.radio(
+                "Select Gap Unit:", 
+                ["Absolute Value ($)", "Percentage (%)"], 
+                horizontal=True,
+                key="bs_gap_unit" # Clé unique pour éviter les conflits
+            )
 
-        col_model, col_market = st.columns(2)
+            # Calcul de l'écart selon le choix
+            if gap_unit == "Absolute Value ($)":
+                subset['Gap_Display'] = subset['BS_Price_Graph'] - subset['Mid_Price']
+                y_title = "Gap ($)"
+                hover_template = "%{y:.2f} $"
+            else:
+                subset['Gap_Display'] = (subset['BS_Price_Graph'] - subset['Mid_Price']) / subset['Mid_Price'] * 100
+                subset['Gap_Display'] = subset['Gap_Display'].fillna(0)
+                y_title = "Gap (%)"
+                hover_template = "%{y:.2f} %"
 
-        # Fonction pour générer le df
-        def create_greeks_df(greeks_data, title):
-            data_dict = {
-                "Greek": ["$\Delta$", "$\Gamma$", "$\Theta$ (Daily)", "$\mathcal{V}$", "$ρ$"],
-                "Value": [
-                    f"{greeks_data['delta']:.4f}",
-                    f"{greeks_data['gamma']:.4f}",
-                    f"{greeks_data['theta_day']:.4f}",
-                    f"{greeks_data['vega']/100:.4f}",
-                    f"{greeks_data['rho']/100:.4f}"
-                ]
-            }
-            df = pd.DataFrame(data_dict).set_index("Greek")
-            return df
-        
-        # Affichage greeks BS 
-        with col_model:
-            st.markdown(f"### Black-Scholes model (your assumptions)")
-            st.caption(f"Based on your inputs in the model")
-            df_model = create_greeks_df(greeks_model, "BS Model")
-            st.table(df_model)
+    ### Graph 2 : Histogramme price gap ###
 
-        # Affichage greeks marché
-        with col_market:
-            st.markdown(f"### Market model (implied parameters)")
-            st.caption(f"Based on the selected option market data")
-            df_market = create_greeks_df(greeks_market, "Market model")
-            st.table(df_market)
+            fig_gap = go.Figure()
+            fig_gap.add_trace(go.Bar(
+                x=subset['strike'], y=subset['Gap_Display'],
+                marker_color=subset['Gap_Display'].apply(lambda x: 'red' if x < 0 else 'green'),
+                name='Gap',
+                hovertemplate=f"Strike: %{{x}}<br>Gap: {hover_template}"
+            ))
+            fig_gap.add_vline(x=S, line_dash="dot", annotation_text="Spot")
+            fig_gap.update_layout(title=f"Discrepancy in {gap_unit}", xaxis_title="Strike", yaxis_title=y_title)
+            st.plotly_chart(fig_gap, width='stretch')
 
-        st.markdown("---")
+                                    ########## Onglet 2 : IV ##########
+
+        with tab2:
+            fig_vol = go.Figure()
             
-### Interprétation greeks gaps ###
-        
-        delta_gap = greeks_model['delta'] - greeks_market['delta']
-        gamma_gap = greeks_model['gamma'] - greeks_market['gamma']
-        theta_gap = greeks_model['theta_day'] - greeks_market['theta_day']
-        vega_gap = greeks_model['vega']/100 - greeks_market['vega']/100
-        rho_gap = greeks_model['rho']/100 - greeks_market['rho']/100
-        
-        st.subheader("💡 Greeks gaps interpretation", help = "The gap corresponds to : *(model - market)*")
-        
-        st.markdown("#### $\Delta$")
-        if abs(delta_gap) < 0.001:
-            st.success("✅ Your sensitivity to the underlying price is consistent with the market.")
-        elif delta_gap > 0:
-            st.warning(f"🔺 **Gap :** `{delta_gap:+.4f}` ➜ Your model **overestimates** *Delta*.\n\n"
-                       f"**Consequence :** Your option is priced as **more sensitive to Spot movements** than the market anticipates.\n\n"
-                       f"**Interpretation :** Your *Delta* hedge will be **more aggressive** than the market consensus.")
-        else:
-            st.error(f"🔻 **Gap :** `{delta_gap:+.4f}` ➜ Your model **underestimates** *Delta*.\n\n"
-                     f"**Consequence :** Your option is priced as **less sensitive to Spot movements** than the market anticipates.\n\n"
-                     f"**Interpretation :** Your *Delta* hedge will be **more conservative (weaker)** than the market consensus.")
-        st.markdown("#### $\Gamma$")
-        if abs(gamma_gap) < 0.001:
-            st.success("✅ The stability of your *Delta* hedge is consistent with the market.")
-        elif gamma_gap > 0:
-            st.warning(f"🔺 **Gap :** `{gamma_gap:+.4f}` ➜ Your model overestimates *Gamma*.\n\n"
-                       f"**Consequence :** Your *Delta* is **less stable** and changes rapidly with Spot movements.\n\n"
-                       f"**Interpretation :** You anticipate needing to re-adjust your hedge position more frequently and significantly.")
-        else:
-            st.error(f"🔻 **Gap :** `{gamma_gap:+.4f}` ➜ Your model underestimates *Gamma*.\n\n"
-                     f"**Consequence :** Your *Delta* is **insufficiently dynamic** and understates the change in directional risk.\n\n"
-                     f"**Interpretation :** You may be underestimating the need to re-adjust your hedge position as the underlying moves.")
-
-        st.markdown("#### $\Theta$ (daily)")
-        if abs(theta_gap) < 0.001:
-            st.success("✅ Your daily time decay estimation is consistent with the market.")
-        elif theta_gap > 0:
-            st.error(f"🔺 **Gap :** `{theta_gap:+.4f}` ➜ Your model underestimates time decay (*Theta* is less negative).\n\n"
-                     f"**Consequence :** Your option is expected to lose value **slower** than the market anticipates.\n\n"
-                     f"**Interpretation :** You are overestimating the remaining time value of the option.")
-        else:
-            st.warning(f"🔻 **Gap :** `{theta_gap:+.4f}` ➜ Your model overestimates time decay (*Theta* is more negative).\n\n"
-                       f"**Consequence :** Your option is expected to lose value **faster** than the market anticipates.\n\n"
-                       f"**Interpretation :** You are underestimating the remaining time value of the option.")
+            # bleu = IV
+            fig_vol.add_trace(go.Scatter(
+                x=subset['strike'], 
+                y=subset['Computed_IV'], 
+                mode='lines+markers',
+                name='Implied Volatility',
+                line=dict(color='blue', shape='spline')
+            ))
             
-        st.markdown("#### $\mathcal{V}$")
-        if abs(vega_gap) < 0.001:
-            st.success("✅ Your exposure to changes in volatility is consistent with the market.")
-        elif vega_gap > 0:
-            st.warning(f"🔺 **Gap :** `{vega_gap:+.4f}` ➜ Your model overestimates *Vega*.\n\n"
-                       f"**Consequence :** Your option is **more exposed to volatility risk** than the market consensus.\n\n"
-                       f"**Interpretation :** If volatility rises by 1%, the positive impact on your price is stronger than the market consensus.")
-        else:
-            st.error(f"🔻 **Gap :** `{vega_gap:+.4f}` ➜ Your model underestimates *Vega*.\n\n"
-                     f"**Consequence :** Your option is **less exposed to volatility risk** than the market consensus.\n\n"
-                     f"**Interpretation :** If volatility changes, the resulting P&L impact on your position will be smaller than the market consensus.")
+            # rouge = modèle input
+            fig_vol.add_trace(go.Scatter(
+                x=subset['strike'], 
+                y=[sigma] * len(subset),
+                mode='lines',
+                name='BS Volatility (your input)',
+                line=dict(color='red', dash='dash')
+            ))
+            fig_vol.add_vline(x=data['S0'], line_dash="dot", annotation_text="Spot")
+            fig_vol.update_layout(yaxis_tickformat=".1%", title="Volatility Smile according to the strike", xaxis_title="Strike", yaxis_title="Volatility")
+            st.plotly_chart(fig_vol, width='stretch')
 
-        st.markdown("#### $ρ$")
+                                    ########## Onglet 3 : Greeks ##########
 
-        if abs(rho_gap) < 0.001:
-            st.success("✅ Your sensitivity to the risk-free rate is consistent with the market.")
-        elif rho_gap > 0:
-            if option_type == "Call":
-                st.warning(f"🔺 **Gap :** `{rho_gap:+.4f}$` ➜ Your model overestimates *Rho*.\n\n"
-                           f"**Consequence :** Your option is **more sensitive** to changes in the risk-free rate ($r$).\n\n"
-                           f"**Interpretation :** A rate increase will cause a **stronger positive price impact** than the market consensus.")
-            else: 
-                st.warning(f"🔺 **Gap :** `{rho_gap:+.4f}$` ➜ Your model overestimates *Rho*.\n\n"
-                           f"**Consequence :** Your option is **less sensitive** to changes in the risk-free rate ($r$).\n\n"
-                           f"**Interpretation :** A rate increase will cause a **weaker negative price impact** than the market consensus.")
-        else: # rho_gap < 0
-            if option_type == "Call":
-                st.error(f"🔻 **Gap :** `{rho_gap:+.4f}$` ➜ Your model underestimates *Rho*.\n\n"
-                         f"**Consequence :** Your option is **less sensitive** to changes in the risk-free rate ($r$).\n\n"
-                         f"**Interpretation :** A rate increase will cause a **weaker positive price impact** than the market consensus.")
-            else: # Put
-                st.error(f"🔻 **Gap :** `{rho_gap:+.4f}$` ➜ Your model underestimates *Rho*.\n\n"
-                         f"**Consequence :** Your option is **more sensitive** to changes in the risk-free rate ($r$).\n\n"
-                         f"**Interpretation :** A rate increase will cause a **stronger negative price impact** than the market consensus.")
+        with tab3:
+
+    ### Explications ###
             
+            st.subheader("Sensitivities / Risk Analysis : Greeks")
+            st.expander("❓ **What are the Greeks ?**", expanded=False).markdown(r"""
+                The Greeks are measures of risk and sensitivity of an option price to changes in the underlying parameters of the Black-Scholes model.                                                              
+                *Here ( $V$ ) represents the option price.*
+                
+                * **Delta $\Delta$** : **Underlying Price Sensitivity** $(\frac{\partial V}{\partial S})$.
+                    * *Definition :* Option price variation if the underlying price changes by $1.
+                    * *Example :* $\Delta$ = 0.5 ➜ If Spot +1\$, Option Price +0.5\$.
+                * **Gamma $\Gamma$** : **Delta Sensitivity to Price** $(\frac{\partial^2 V}{\partial S^2})$.
+                    * *Definition :* Measures the rate of change in Delta for a $1 change in the underlying price.                               
+                                    High Gamma means Delta changes rapidly, requiring more frequent hedging.
+                    * *Example :* $\Gamma$ = 0.05 ➜ If Spot +1\$, $\Delta$ +0.05.
+                * **Theta $\Theta$** : **Time Decay** $(\frac{\partial V}{\partial t})$.
+                    * *Definition :* Amount of value the option loses *per unity of time*, all else being equal.   
+                                    It is the daily cost for the option holder.
+                    * *Example :* $\Theta$ (Daily) = -0.10\$ ➜ The option loses 0.10\$ in value tomorrow.
+                * **Vega $\mathcal{V}$** : **Volatility Sensitivity** $(\frac{\partial V}{\partial \sigma})$.
+                    * *Definition :* Option price variation if Volatility changes by *1 point (i.e., 1% = 0.01)*.
+                    * *Example :* $\mathcal{V}$ = 0.20 ➜ If Volatility +1%, Option Price +0.20\$.
+                * **Rho $\rho$** : **Risk-Free Rate Sensitivity** $(\frac{\partial V}{\partial r})$.
+                    * *Definition :* Option price variation if the risk-free rate ($r$) changes by *1 point*.
+                    * *Example :* $\rho$ = 0.15 ➜ If $r$ +1%, Option Price +0.15\$.
+                """)
+
+    ### Calcul ###
+            
+            # Greeks Modèle (avec inputs utilisateur)
+            greeks_model = calculate_greeks(S, K, T, r, sigma, q, option_type)
+            # Greeks Marché (avec paramètres réels/implicites)
+            greeks_market = calculate_greeks(S0_val, selected_strike, T_market, data['r'], sigma_market, data['q'], option_type)
+            #Rappel : ces variables sont tirées de yfinance et initialisées en début de script
+
+    ### Création du df + affichage ###
+
+            col_model, col_market = st.columns(2)
+
+            # Fonction pour générer le df
+            def create_greeks_df(greeks_data, title):
+                data_dict = {
+                    "Greek": ["$\Delta$", "$\Gamma$", "$\Theta$ (Daily)", "$\mathcal{V}$", "$ρ$"],
+                    "Value": [
+                        f"{greeks_data['delta']:.4f}",
+                        f"{greeks_data['gamma']:.4f}",
+                        f"{greeks_data['theta_day']:.4f}",
+                        f"{greeks_data['vega']/100:.4f}",
+                        f"{greeks_data['rho']/100:.4f}"
+                    ]
+                }
+                df = pd.DataFrame(data_dict).set_index("Greek")
+                return df
+            
+            # Affichage greeks BS 
+            with col_model:
+                st.markdown(f"### Black-Scholes")
+                st.caption(f"Based on your assumptions in the model")
+                df_model = create_greeks_df(greeks_model, "BS Model")
+                st.table(df_model)
+
+            # Affichage greeks marché
+            with col_market:
+                st.markdown(f"### Market model")
+                st.caption(f"Based on the selected option market data")
+                df_market = create_greeks_df(greeks_market, "Market model")
+                st.table(df_market)
+
+            st.markdown("---")
+                
+    ### Interprétation greeks gaps ###
+            
+            delta_gap = greeks_model['delta'] - greeks_market['delta']
+            gamma_gap = greeks_model['gamma'] - greeks_market['gamma']
+            theta_gap = greeks_model['theta_day'] - greeks_market['theta_day']
+            vega_gap = greeks_model['vega']/100 - greeks_market['vega']/100
+            rho_gap = greeks_model['rho']/100 - greeks_market['rho']/100
+            
+            st.subheader("💡 Greeks gaps interpretation")
+            
+            st.markdown("#### $\Delta$")
+            if abs(delta_gap) < 0.001:
+                st.success("✅ Your sensitivity to the underlying price is consistent with the market.")
+            elif delta_gap > 0:
+                st.warning(f"🔺 **Gap :** `{delta_gap:+.4f}` ➜ Your model **overestimates** *Delta*.\n\n"
+                        f"**Consequence :** Your option is priced as **more sensitive to Spot movements** than the market anticipates.\n\n"
+                        f"**Interpretation :** Your *Delta* hedge will be **more aggressive** than the market consensus.")
+            else:
+                st.error(f"🔻 **Gap :** `{delta_gap:+.4f}` ➜ Your model **underestimates** *Delta*.\n\n"
+                        f"**Consequence :** Your option is priced as **less sensitive to Spot movements** than the market anticipates.\n\n"
+                        f"**Interpretation :** Your *Delta* hedge will be **more conservative (weaker)** than the market consensus.")
+            st.markdown("#### $\Gamma$")
+            if abs(gamma_gap) < 0.001:
+                st.success("✅ The stability of your *Delta* hedge is consistent with the market.")
+            elif gamma_gap > 0:
+                st.warning(f"🔺 **Gap :** `{gamma_gap:+.4f}` ➜ Your model overestimates *Gamma*.\n\n"
+                        f"**Consequence :** Your *Delta* is **less stable** and changes rapidly with Spot movements.\n\n"
+                        f"**Interpretation :** You anticipate needing to re-adjust your hedge position more frequently and significantly.")
+            else:
+                st.error(f"🔻 **Gap :** `{gamma_gap:+.4f}` ➜ Your model underestimates *Gamma*.\n\n"
+                        f"**Consequence :** Your *Delta* is **insufficiently dynamic** and understates the change in directional risk.\n\n"
+                        f"**Interpretation :** You may be underestimating the need to re-adjust your hedge position as the underlying moves.")
+
+            st.markdown("#### $\Theta$ (daily)")
+            if abs(theta_gap) < 0.001:
+                st.success("✅ Your daily time decay estimation is consistent with the market.")
+            elif theta_gap > 0:
+                st.error(f"🔺 **Gap :** `{theta_gap:+.4f}` ➜ Your model underestimates time decay (*Theta* is less negative).\n\n"
+                        f"**Consequence :** Your option is expected to lose value **slower** than the market anticipates.\n\n"
+                        f"**Interpretation :** You are overestimating the remaining time value of the option.")
+            else:
+                st.warning(f"🔻 **Gap :** `{theta_gap:+.4f}` ➜ Your model overestimates time decay (*Theta* is more negative).\n\n"
+                        f"**Consequence :** Your option is expected to lose value **faster** than the market anticipates.\n\n"
+                        f"**Interpretation :** You are underestimating the remaining time value of the option.")
+                
+            st.markdown("#### $\mathcal{V}$")
+            if abs(vega_gap) < 0.001:
+                st.success("✅ Your exposure to changes in volatility is consistent with the market.")
+            elif vega_gap > 0:
+                st.warning(f"🔺 **Gap :** `{vega_gap:+.4f}` ➜ Your model overestimates *Vega*.\n\n"
+                        f"**Consequence :** Your option is **more exposed to volatility risk** than the market consensus.\n\n"
+                        f"**Interpretation :** If volatility rises by 1%, the positive impact on your price is stronger than the market consensus.")
+            else:
+                st.error(f"🔻 **Gap :** `{vega_gap:+.4f}` ➜ Your model underestimates *Vega*.\n\n"
+                        f"**Consequence :** Your option is **less exposed to volatility risk** than the market consensus.\n\n"
+                        f"**Interpretation :** If volatility changes, the resulting P&L impact on your position will be smaller than the market consensus.")
+
+            st.markdown("#### $ρ$")
+
+            if abs(rho_gap) < 0.001:
+                st.success("✅ Your sensitivity to the risk-free rate is consistent with the market.")
+            elif rho_gap > 0:
+                if option_type == "Call":
+                    st.warning(f"🔺 **Gap :** `{rho_gap:+.4f}$` ➜ Your model overestimates *Rho*.\n\n"
+                            f"**Consequence :** Your option is **more sensitive** to changes in the risk-free rate ($r$).\n\n"
+                            f"**Interpretation :** A rate increase will cause a **stronger positive price impact** than the market consensus.")
+                else: 
+                    st.warning(f"🔺 **Gap :** `{rho_gap:+.4f}$` ➜ Your model overestimates *Rho*.\n\n"
+                            f"**Consequence :** Your option is **less sensitive** to changes in the risk-free rate ($r$).\n\n"
+                            f"**Interpretation :** A rate increase will cause a **weaker negative price impact** than the market consensus.")
+            else: # rho_gap < 0
+                if option_type == "Call":
+                    st.error(f"🔻 **Gap :** `{rho_gap:+.4f}$` ➜ Your model underestimates *Rho*.\n\n"
+                            f"**Consequence :** Your option is **less sensitive** to changes in the risk-free rate ($r$).\n\n"
+                            f"**Interpretation :** A rate increase will cause a **weaker positive price impact** than the market consensus.")
+                else: # Put
+                    st.error(f"🔻 **Gap :** `{rho_gap:+.4f}$` ➜ Your model underestimates *Rho*.\n\n"
+                            f"**Consequence :** Your option is **more sensitive** to changes in the risk-free rate ($r$).\n\n"
+                            f"**Interpretation :** A rate increase will cause a **stronger negative price impact** than the market consensus.")
+                
