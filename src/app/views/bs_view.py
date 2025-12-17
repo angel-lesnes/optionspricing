@@ -1,11 +1,11 @@
 import streamlit as st
 import numpy as np
 import plotly.graph_objs as go
+import pandas as pd
+from datetime import datetime
 from pricing.black_scholes import bs_call_price, bs_put_price, implied_volatility
 from app.data_fetcher import get_market_data, get_chain_for_expiration
 from pricing.greeks import calculate_greeks
-import pandas as pd
-from datetime import datetime
 
 def render_bs():
     st.header("Underlying market data")
@@ -16,7 +16,7 @@ def render_bs():
 
     col_search, col_info = st.columns([1, 2])
     with col_search:
-        ticker_input = st.text_input("Ticker (ex: AAPL, NVDA,^SPX...)", value="AAPL").upper()
+        ticker_input = st.text_input("Ticker (ex : AAPL, NVDA,^SPX...)", value="AAPL").upper()
         if st.button("Load data"):
             with st.spinner('Market data retrieval...'):
                 data = get_market_data(ticker_input)
@@ -53,7 +53,7 @@ def render_bs():
     
 ########## Maturité ##########
 
-    with col_params1: #Maturité
+    with col_params1:
         exp_dates = data['expirations']
         if not exp_dates:
             st.warning("⚠️ No option data available.")
@@ -136,6 +136,7 @@ def render_bs():
             final_price_ref = last_price
             source_type = "Last Price (Yahoo Finance)"
             status_msg = "⚠️ Mid-Price invalid/missing. Implied volatility computed (Brent Method) from Last Price."
+
 ########## Etape 3 : import yfinance ##########
     if np.isnan(final_sigma):
         if yahoo_iv > 0.01 and not pd.isna(yahoo_iv):
@@ -151,7 +152,7 @@ def render_bs():
         source_type = "Last Price (Yahoo Finance)"
         status_msg = "❌ Market data unusable. Arbitrary volatility (25%) used."
 
-    # attention à bien assigner les valeurs finales
+    # /!\ assigner les valeurs finales (à retenir pr prochains codes) /!\
     sigma_market = final_sigma
     market_price = final_price_ref 
     
@@ -160,7 +161,7 @@ def render_bs():
 ##################################################
 
     with col_params3:
-        st.metric("Market Price", f"{market_price:.2f} $")
+        st.metric("Market Price", f"{market_price:.4f} $")
         with st.expander("ℹ️ Price details"):
             st.markdown(f"{source_type}")
         st.metric("Implied Volatility", f"{sigma_market:.2%}")
@@ -171,7 +172,7 @@ def render_bs():
     ########## PARAMÈTRES MODIFIABLES ###########
 ######################################################
 
-    st.subheader("Black-Scholes Model Parameters")
+    st.subheader("⚙️ Black-Scholes Model Parameters")
     st.caption("You can modify the values below to simulate different scenarios.")
 
     c1, c2, c3, c4, c5, c6 = st.columns(6) 
@@ -192,6 +193,8 @@ def render_bs():
     ########## PRICING ###########
 #####################################
 
+########## Bouton + affichage du prix ##########
+
     if st.button("Click for pricing"):
         if option_type == "Call":
             price_theo = bs_call_price(S, K, T, r, sigma, q)
@@ -199,19 +202,22 @@ def render_bs():
             price_theo = bs_put_price(S, K, T, r, sigma, q)
         
         st.write(f"## Theoretical price : {price_theo:.4f} {data['currency']}")
+
+########## Affichage gap prix & volat ##########
         
         diff = price_theo - market_price
         diff_percent = (price_theo - market_price) / market_price * 100 if market_price > 0.01 else 0
         col_res1, col_res2 = st.columns(2)
         with col_res1:
-            st.metric("Price Gap", f"{diff:+.2f} $ ({diff_percent:+.1f}%)")
+            st.metric("Price Gap", f"{diff:+.4f} $ ({diff_percent:+.2f}%)")
         with col_res2:
              sigma_diff = sigma - sigma_market
              st.metric("Volatility Gap", f"{sigma_diff*100:+.2f} %")
 
+########## Détection des changements ##########
+
         with st.expander("💡 Click to analyze the gap"):
 
-            # Détection précise des changements
             params_changed = []
             if abs(data['S0'] - S) > 0.01: params_changed.append("Spot Price")
             if abs(data['r'] - r) > 0.001: params_changed.append("Risk-free Rate")
@@ -219,6 +225,8 @@ def render_bs():
             if abs(selected_strike - K) > 0.01: params_changed.append("Strike") 
             if abs(T_market - T) > 0.001: params_changed.append("Maturity")
             if abs(sigma_diff) > 0.001: params_changed.append("Volatility")
+
+########## Interprétation ##########
 
             if params_changed:
                 st.info(f"ℹ️ **Simulation Mode :** You have modified: **{', '.join(params_changed)}**.")
@@ -245,17 +253,20 @@ def render_bs():
                 st.info(f"ℹ️ You are using the exact same parameters as the market option. Your theoretical price matches perfectly the market price.")
     st.markdown("---")
 
-#####################################
-    ########## GRAPHS ###########
-#####################################
+################################################################
+    ########## OUTILS D'ANALYSE (Graphs, Greeks) ###########
+################################################################
 
     st.subheader("📊 Analysis tools")
+    st.caption(
+    f"⚠️ Volatility used to compute **model price** for each strike = **your input**.\n\n "
+    f"⚠️ Volatility used to compute **market price** = **implied volatility**.")
 
-########## data ##########
+########## création df avec strikes ##########
     subset = chain_df[
         (chain_df['strike'] > data['S0'] * 0.5) & 
         (chain_df['strike'] < data['S0'] * 1.5)
-    ].copy() #filtrage du strike : 50% autour du spot
+    ].copy() #filtrage : 50% autour du spot
 
 ########## Fonction IV pour plot ##########
     def get_robust_iv_for_plot(row):
@@ -275,41 +286,75 @@ def render_bs():
         return np.nan
 
 ########## Intégration IV au df ##########
-    with st.spinner("Generating graphs..."):
-        subset['Computed_IV'] = subset.apply(get_robust_iv_for_plot, axis=1)
+    subset['Computed_IV'] = subset.apply(get_robust_iv_for_plot, axis=1)
 
 #si valeur manquante pour le plot, interpolation linéaire ou fallback de 0.25
     subset['Computed_IV'] = subset['Computed_IV'].interpolate(method='linear', limit_direction='both').fillna(0.25) 
 
 ########## Intégration prix BS au df ##########
-    subset['BS_Price_Input'] = subset['strike'].apply(
-        lambda k: bs_call_price(data['S0'], k, T, r, sigma, q) if option_type == "Call" 
-        else bs_put_price(data['S0'], k, T, r, sigma, q)
+    subset['BS_Price_Graph'] = subset['strike'].apply(
+        lambda k: bs_call_price(S, k, T, r, sigma, q) if option_type == "Call" 
+        else bs_put_price(S, k, T, r, sigma, q)
     )
-
-########## Intégration diff (prix bs - prix marché) ##########
-    subset['Diff_Abs'] = subset['BS_Price_Input'] - subset['Mid_Price']
-
-########## AFFICHAGE DES GRAPHS ##########
+                                    ##########################################
+                                    ########## AFFICHAGE DES GRAPHS ##########
+                                    ##########################################
     tab1, tab2, tab3 = st.tabs(["Price gap", "Volatility Smile", "Greeks"])
 
-    # GRAPH 1 : PRIX 
+                                ########## Onglet 1 : Analyse prix ##########
     with tab1:
-        st.caption("⚠️ Volatility used to compute model price for each strike = your input. Volatility used to compute market price = implied volatility.")
-        fig = go.Figure()
-        fig.add_trace(go.Scatter(x=subset['strike'], y=subset['Mid_Price'], mode='lines+markers', name='Market Price', marker=dict(color='blue', opacity=0.5)))
-        fig.add_trace(go.Scatter(x=subset['strike'], y=subset['BS_Price_Input'], mode='lines', name='Black-Scholes Price', line=dict(color='red', dash='dash')))
-        fig.add_vline(x=data['S0'], line_dash="dot", annotation_text="Spot")
-        fig.update_layout(title=f"Comparison of the price of a {option_type} by Strike", xaxis_title="Strike (K)", yaxis_title="Option Price")
-        st.plotly_chart(fig, width='stretch')
+        
+### Graph 1 : comparaison prix BS et marché ###
+        fig_price = go.Figure()
+        fig_price.add_trace(go.Scatter(
+            x=subset['strike'], y=subset['Mid_Price'], 
+            mode='lines+markers', name='Market Price', 
+            marker=dict(color='blue', opacity=0.6)
+        ))
+        fig_price.add_trace(go.Scatter(
+            x=subset['strike'], y=subset['BS_Price_Graph'], 
+            mode='lines', name='Black-Scholes (Model)', 
+            line=dict(color='red', dash='dash')
+        ))
+        fig_price.add_vline(x=S, line_dash="dot", annotation_text="Spot", annotation_position="top left")
+        fig_price.update_layout(title=f"Price Curve: Market vs Model", xaxis_title="Strike", yaxis_title="Price ($)")
+        st.plotly_chart(fig_price, width='stretch')
 
-        fig2 = go.Figure()
-        fig2.add_trace(go.Bar(x=subset['strike'], y=subset['Diff_Abs'], marker_color=subset['Diff_Abs'].apply(lambda x: 'red' if x < 0 else 'green'), name='Gap ($)'))
-        fig2.add_vline(x=data['S0'], line_dash="dot", annotation_text="Spot")
-        fig2.update_layout(title="Difference : model - market", xaxis_title="Strike (K)", yaxis_title="Gap ($)")
-        st.plotly_chart(fig2, width='stretch')
+### Outil sélection $/% pour graph 2 ###
 
-    # GRAPH 2 : IV
+        gap_unit = st.radio(
+            "Select Gap Unit:", 
+            ["Absolute Value ($)", "Percentage (%)"], 
+            horizontal=True,
+            key="bs_gap_unit" # Clé unique pour éviter les conflits
+        )
+
+        # Calcul de l'écart selon le choix
+        if gap_unit == "Absolute Value ($)":
+            subset['Gap_Display'] = subset['BS_Price_Graph'] - subset['Mid_Price']
+            y_title = "Gap ($)"
+            hover_template = "%{y:.2f} $"
+        else:
+            subset['Gap_Display'] = (subset['BS_Price_Graph'] - subset['Mid_Price']) / subset['Mid_Price'] * 100
+            subset['Gap_Display'] = subset['Gap_Display'].fillna(0)
+            y_title = "Gap (%)"
+            hover_template = "%{y:.2f} %"
+
+### Graph 2 : Histogramme price gap ###
+
+        fig_gap = go.Figure()
+        fig_gap.add_trace(go.Bar(
+            x=subset['strike'], y=subset['Gap_Display'],
+            marker_color=subset['Gap_Display'].apply(lambda x: 'red' if x < 0 else 'green'),
+            name='Gap',
+            hovertemplate=f"Strike: %{{x}}<br>Gap: {hover_template}"
+        ))
+        fig_gap.add_vline(x=S, line_dash="dot", annotation_text="Spot")
+        fig_gap.update_layout(title=f"Discrepancy: Model - Market [{gap_unit}]", xaxis_title="Strike", yaxis_title=y_title)
+        st.plotly_chart(fig_gap, width='stretch')
+
+                                ########## Onglet 2 : IV ##########
+
     with tab2:
         fig_vol = go.Figure()
         
@@ -327,19 +372,21 @@ def render_bs():
             x=subset['strike'], 
             y=[sigma] * len(subset),
             mode='lines',
-            name='Volatility chosen in the model',
+            name='Volatility BS (your input)',
             line=dict(color='red', dash='dash')
         ))
         fig_vol.add_vline(x=data['S0'], line_dash="dot", annotation_text="Spot")
-        fig_vol.update_layout(yaxis_tickformat=".1%", title="Volatility Smile compared to the Strike", xaxis_title="Strike", yaxis_title="Implied Volatility")
+        fig_vol.update_layout(yaxis_tickformat=".1%", title="Volatility Smile according to the strike", xaxis_title="Strike", yaxis_title="Implied Volatility")
         st.plotly_chart(fig_vol, width='stretch')
 
-    # TAB 3 : GREEKS
+                                ########## Onglet 3 : Greeks ##########
 
     with tab3:
+
+### Explications ###
         
-        st.subheader("Sensitivities Analysis (Greeks)")
-        st.expander("❓ **What are the Greeks ?**", expanded=False).markdown(r"""
+        st.subheader("Sensitivities / Risk Analysis : Greeks")
+        st.expander("❓  **What are the Greeks ?**", expanded=False).markdown(r"""
             The Greeks are measures of risk and sensitivity of an option price to changes in the underlying parameters of the Black-Scholes model.                                                              
             *Here ( $V$ ) represents the option price.*
             
@@ -362,20 +409,19 @@ def render_bs():
                 * *Example :* $\rho$ = 0.15 ➜ If $r$ +1%, Option Price +0.15\$.
             """)
 
-        # 3.1 CALCUL DES GREEKS
+### Calcul ###
         
         # Greeks Modèle (avec inputs utilisateur)
         greeks_model = calculate_greeks(S, K, T, r, sigma, q, option_type)
-        
         # Greeks Marché (avec paramètres réels/implicites)
-        # S0_val, T_market, sigma_market, r_val, q_val sont les variables définies en début de script.
-        greeks_market = calculate_greeks(data['S0'], selected_strike, T_market, data['r'], sigma_market, data['q'], option_type)
+        greeks_market = calculate_greeks(S0_val, selected_strike, T_market, data['r'], sigma_market, data['q'], option_type)
+        #Rappel : ces variables sont tirées de yfinance et initialisées en début de script
 
-        # 3.2 CRÉATION DU DATAFRAME ET AFFICHAGE
+### Création du df + affichage ###
 
         col_model, col_market = st.columns(2)
 
-        # Fonction pour générer le DataFrame Greek
+        # Fonction pour générer le df
         def create_greeks_df(greeks_data, title):
             data_dict = {
                 "Greek": ["$\Delta$", "$\Gamma$", "$\Theta$ (Daily)", "$\mathcal{V}$", "$ρ$"],
@@ -390,22 +436,23 @@ def render_bs():
             df = pd.DataFrame(data_dict).set_index("Greek")
             return df
         
-        # Affichage du Modèle
+        # Affichage greeks BS 
         with col_model:
             st.markdown(f"### Black-Scholes model (your assumptions)")
             st.caption(f"Based on your inputs in the model")
             df_model = create_greeks_df(greeks_model, "BS Model")
             st.table(df_model)
 
-        # Affichage du Marché
+        # Affichage greeks marché
         with col_market:
             st.markdown(f"### Market model (implied parameters)")
             st.caption(f"Based on the selected option market data")
             df_market = create_greeks_df(greeks_market, "Market model")
             st.table(df_market)
-            
-        # 3.3 ANALYSE DES GAPS
+
         st.markdown("---")
+            
+### Interprétation greeks gaps ###
         
         delta_gap = greeks_model['delta'] - greeks_market['delta']
         gamma_gap = greeks_model['gamma'] - greeks_market['gamma']
@@ -413,7 +460,7 @@ def render_bs():
         vega_gap = greeks_model['vega']/100 - greeks_market['vega']/100
         rho_gap = greeks_model['rho']/100 - greeks_market['rho']/100
         
-        st.subheader("Greeks gaps interpretation", help = "The gap corresponds to : *(|model| - |market|)*")
+        st.subheader("💡 Greeks gaps interpretation", help = "The gap corresponds to : *(model - market)*")
         
         st.markdown("#### $\Delta$")
         if abs(delta_gap) < 0.001:
@@ -471,7 +518,7 @@ def render_bs():
                 st.warning(f"🔺 **Gap :** `{rho_gap:+.4f}$` ➜ Your model overestimates *Rho*.\n\n"
                            f"**Consequence :** Your option is **more sensitive** to changes in the risk-free rate ($r$).\n\n"
                            f"**Interpretation :** A rate increase will cause a **stronger positive price impact** than the market consensus.")
-            else: # Put
+            else: 
                 st.warning(f"🔺 **Gap :** `{rho_gap:+.4f}$` ➜ Your model overestimates *Rho*.\n\n"
                            f"**Consequence :** Your option is **less sensitive** to changes in the risk-free rate ($r$).\n\n"
                            f"**Interpretation :** A rate increase will cause a **weaker negative price impact** than the market consensus.")

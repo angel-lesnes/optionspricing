@@ -62,7 +62,7 @@ def mc_price_put(S_paths, K, r, T, control_variate=False):
     if not control_variate:
         return price
 
-    # Control variate basé sur E[ST] analytique
+    # Control variate pareil
     S0 = S_paths[0, 0]
     theoretical_ST = S0 * exp(r * T)
 

@@ -21,7 +21,7 @@ with st.sidebar:
     st.markdown("---")
 
     #disclaimer
-    st.caption("This application is for educational and informational purposes only. "
+    st.caption("This application is for educational and informational purposes only."
                "It does not constitute financial, investment, or trading advice.")
 
 # ----- MAIN -----
