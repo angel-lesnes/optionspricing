@@ -11,8 +11,7 @@ Designed for educational purposes to analyze and interpret outputs (greeks, vola
 
 ## Demo
 
-![Application Demo](assets/demo.gif)
-*(Note: If the GIF doesn't load, please check the `assets` folder)*
+![Application Demo](/demo.gif)
 
 ## Features
 
@@ -26,6 +25,7 @@ Designed for educational purposes to analyze and interpret outputs (greeks, vola
 
 ## Project Structure
 
+```text
 ├── src/
 │   ├── app/
 │   │   ├── streamlit_app.py    # Application entry point
@@ -42,20 +42,14 @@ Designed for educational purposes to analyze and interpret outputs (greeks, vola
 ├── requirements.txt            # Project dependencies
 ├── LICENSE                     # Project license
 └── README.md                   # Documentation
-
+```
 ---
 
-## Connect & Credits
-<div align="center">
+<p align="center">
 
-Created by Lesnes Angel : [![LinkedIn](https://img.shields.io/badge/LinkedIn-Connect-blue?style=for-the-badge&logo=linkedin)](https://www.linkedin.com/in/angel-lesnes-7714b6386)
+<strong>Created by Lesnes Angel</strong> &nbsp;&nbsp; • &nbsp;&nbsp; <a href="https://www.linkedin.com/in/angel-lesnes-7714b6386" target="_blank"> <img src="https://img.shields.io/badge/LinkedIn-Connect-blue?style=for-the-badge&logo=linkedin" valign="middle"> </a> </p>
 
-</div>
-
-Disclaimer
-[!WARNING]
-
-This application is developed for educational and informational purposes only. The data, calculations, and models provided do not constitute financial, investment, or trading advice. Always consult a certified financial professional before making investment decisions.
+[!WARNING] Educational purpose only: This application is developed for educational and informational purposes only. The data, calculations, and models provided do not constitute financial, investment, or trading advice. Always consult a certified financial professional before making investment decisions
 
 📜 Copyright
 © 2025 Lesnes Angel. All rights reserved.
