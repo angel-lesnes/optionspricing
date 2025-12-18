@@ -2,7 +2,5 @@ streamlit
 numpy
 scipy
 pandas
-matplotlib
-numba
 plotly
 yfinance

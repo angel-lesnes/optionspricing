@@ -4,6 +4,13 @@
 [![Streamlit](https://img.shields.io/badge/Streamlit-1.31-FF4B4B)](https://streamlit.io/)
 [![License](https://img.shields.io/badge/License-MIT-green)](LICENSE)
 
+<p align="center">
+  <a href="URL_DE_TON_SITE" style="text-decoration: none;">
+    <img src="src/app/images/logo.png" height="30" style="vertical-align: middle;">
+    <span style="vertical-align: middle; font-weight: bold; margin-left: 10px;">Click to view the website</span>
+  </a>
+</p>
+
 An interactive dashboard to price financial options using various mathematical models and compare to market datas. 
 Designed for educational purposes to analyze and interpret outputs (greeks, volatility, convergence, etc.)
 
