@@ -3,9 +3,9 @@ import numpy as np
 import plotly.graph_objs as go
 import pandas as pd
 from datetime import datetime
-from pricing.black_scholes import bs_call_price, bs_put_price, implied_volatility
-from app.data_fetcher import get_market_data, get_chain_for_expiration
-from pricing.greeks import calculate_greeks
+from src.pricing.black_scholes import bs_call_price, bs_put_price, implied_volatility
+from src.app.data_fetcher import get_market_data, get_chain_for_expiration
+from src.pricing.greeks import calculate_greeks
 
 def render_bs():
     st.header("📜 Black-Scholes")

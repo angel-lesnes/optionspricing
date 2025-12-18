@@ -1,7 +1,7 @@
 import streamlit as st
 import numpy as np
 import plotly.graph_objs as go
-from pricing.monte_carlo import mc_paths_gbm, mc_price_call, mc_price_put_parity, mc_price_put
+from src.pricing.monte_carlo import mc_paths_gbm, mc_price_call, mc_price_put_parity, mc_price_put
 
 def render_mc():
     st.header("🎲 Monte Carlo Simulation")

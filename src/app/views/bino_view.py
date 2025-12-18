@@ -3,10 +3,10 @@ import numpy as np
 import plotly.graph_objs as go
 import pandas as pd
 from datetime import datetime
-from app.data_fetcher import get_market_data, get_chain_for_expiration
-from pricing.binomial import binomial_option_pricing
-from pricing.black_scholes import implied_volatility, bs_call_price, bs_put_price 
-from pricing.greeks import calculate_binomial_greeks, calculate_greeks
+from src.app.data_fetcher import get_market_data, get_chain_for_expiration
+from src.pricing.binomial import binomial_option_pricing
+from src.pricing.black_scholes import implied_volatility, bs_call_price, bs_put_price 
+from src.pricing.greeks import calculate_binomial_greeks, calculate_greeks
 
 def render_american():
     st.header("🌳 Binomial Tree")
