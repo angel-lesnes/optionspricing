@@ -49,7 +49,8 @@ Designed for educational purposes to analyze and interpret outputs (greeks, vola
 
 <strong>Created by Lesnes Angel</strong> &nbsp;&nbsp; • &nbsp;&nbsp; <a href="https://www.linkedin.com/in/angel-lesnes-7714b6386" target="_blank"> <img src="https://img.shields.io/badge/LinkedIn-Connect-blue?style=for-the-badge&logo=linkedin" valign="middle"> </a> </p>
 
-[!WARNING] Educational purpose only: This application is developed for educational and informational purposes only. The data, calculations, and models provided do not constitute financial, investment, or trading advice. Always consult a certified financial professional before making investment decisions
+> [!WARNING] 
+> **Educational purpose only :** This application is developed for educational and informational purposes only. The data, calculations, and models provided do not constitute financial, investment, or trading advice. Always consult a certified financial professional before making investment decisions
 
 📜 Copyright
 © 2025 Lesnes Angel. All rights reserved.
