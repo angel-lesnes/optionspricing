@@ -112,15 +112,18 @@ if selected_page == "🏠 Home" or selected_page == "---":
 ### Chargement des pages ###
 
 elif selected_page == "📜 Black-Scholes":
-    from app.views.bs_view import render_bs 
-    render_bs()
+    with st.spinner("Please wait, the engine is loading..."):
+        from app.views.bs_view import render_bs 
+        render_bs()
 elif selected_page == "🌳 Binomial Tree":
-    from app.views.american_view import render_american
-    render_american()
+    with st.spinner("Please wait, the engine is loading..."):
+        from app.views.bino_view import render_american
+        render_american()
 elif selected_page == "🎲 Monte Carlo":
-    try:
-        from app.views.mc_view import render_mc
-        render_mc()
-    except ImportError:
-        st.error("🚧 The Monte Carlo module is currently under construction. Please check back later!")
-        #si j'ai des modifications à faire qui prennent du temps : afficher ce message avant de mettre version adaptée à l'utilisateur
+    with st.spinner("Please wait, the engine is loading..."):
+        try:
+            from app.views.mc_view import render_mc
+            render_mc()
+        except ImportError:
+            st.error("🚧 The Monte Carlo module is currently under construction. Please check back later !")
+            #si j'ai des modifications à faire qui prennent du temps : afficher ce message avant de mettre version adaptée à l'utilisateur

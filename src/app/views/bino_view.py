@@ -196,7 +196,7 @@ def render_american():
     ########## PRICING ###########
 #####################################
 
-    if st.button("Click for pricing"):
+    if st.button("Click for pricing", type="primary"):
         
 ########## Calcul avec binomial ##########
         with st.spinner(f"Computing Binomial Tree with N = {steps_N}..."):

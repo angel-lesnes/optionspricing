@@ -1,35 +1,18 @@
-# Virtual environments
+```text
+# Python caches
+__pycache__/
+*.pyc
+
+# Virtual env
 .venv/
 venv/
+env/
 
+# Build metadata (Réponse à ta question 1)
+*.egg-info/
+build/
+dist/
 
-# Python cache
-__pycache__/
-*.py[cod]
-.pytest_cache/
-
-
-# Jupyter
-.ipynb_checkpoints
-
-
-# IDEs
+# IDE settings
 .vscode/
 .idea/
-
-
-# OS files
-.DS_Store
-Thumbs.db
-
-
-# Streamlit local
-.streamlit/
-
-
-# Data outputs
-*.csv
-outputs/
-
-
-*.egg-info/

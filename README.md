@@ -1,12 +1,61 @@
-# optionspricing
+# Option Pricing Simulator
 
-Prototype Streamlit pour pricing Monte-Carlo et simulation de couverture.
+[![Python](https://img.shields.io/badge/Python-3.9%2B-blue)](https://www.python.org/)
+[![Streamlit](https://img.shields.io/badge/Streamlit-1.31-FF4B4B)](https://streamlit.io/)
+[![License](https://img.shields.io/badge/License-MIT-green)](LICENSE)
 
+An interactive dashboard to price financial options using various mathematical models and compare to market datas. 
+Designed for educational purposes to analyze and interpret outputs (greeks, volatility, convergence, etc.)
 
-## Installation rapide
+---
 
-```bash
-python -m venv .venv
-.venv\Scripts\activate # ou source .venv/bin/activate sur MacOS / Linux 
-pip install -r requirements.txt
-streamlit run app/streamlit_app.py
+## Demo
+
+![Application Demo](assets/demo.gif)
+*(Note: If the GIF doesn't load, please check the `assets` folder)*
+
+## Features
+
+* **Black-Scholes Model :** Real-time pricing of European options with Greeks visualization ($\Delta$, $\Gamma$, $\Theta$, $\nu$, $\rho$).
+* **Binomial Tree (CRR) :** Step-by-step visualization of American option pricing using Cox-Ross-Rubinstein trees.
+* **Monte Carlo Simulation :** Stochastic pricing with variance reduction techniques (Antithetic & Control Variates) and convergence analysis.
+* **Interactive UI :** Built with Streamlit for dynamic parameter adjustment.
+* **Interactive UX :** Built with Streamlit for understanding results issues.
+
+---
+
+## Project Structure
+
+├── src/
+│   ├── app/
+│   │   ├── streamlit_app.py    # Application entry point
+│   │   ├── data_fetcher.py     # Market data retrieval logic
+│   │   └── views/              # Page layouts (Home, BS, Binomial, MC)
+│   └── pricing/
+│       ├── __init__.py         # Package initialization
+│       ├── black_scholes.py    # Analytical formulas
+│       ├── greeks.py           # Sensitivity calculations
+│       ├── binomial.py         # Tree algorithms
+│       └── monte_carlo.py      # Simulation logic
+├── tests/                      # Unit tests for pricing logic
+├── pyproject.toml              # Build system configuration
+├── requirements.txt            # Project dependencies
+├── LICENSE                     # Project license
+└── README.md                   # Documentation
+
+---
+
+## Connect & Credits
+<div align="center">
+
+Created by Lesnes Angel : [![LinkedIn](https://img.shields.io/badge/LinkedIn-Connect-blue?style=for-the-badge&logo=linkedin)](https://www.linkedin.com/in/angel-lesnes-7714b6386)
+
+</div>
+
+Disclaimer
+[!WARNING]
+
+This application is developed for educational and informational purposes only. The data, calculations, and models provided do not constitute financial, investment, or trading advice. Always consult a certified financial professional before making investment decisions.
+
+📜 Copyright
+© 2025 Lesnes Angel. All rights reserved.

@@ -197,7 +197,7 @@ def render_bs():
 
 ########## Bouton + affichage du prix ##########
 
-    if st.button("Click for pricing"):
+    if st.button("Click for pricing", type="primary"):
         if option_type == "Call":
             price_theo = bs_call_price(S, K, T, r, sigma, q)
         else:
