@@ -7,11 +7,9 @@
 An interactive dashboard to price financial options using various mathematical models and compare to market datas. 
 Designed for educational purposes to analyze and interpret outputs (greeks, volatility, convergence, etc.)
 
----
-
 ## Demo
 
-![Application Demo](/demo.gif)
+![Application Demo](src/app/images/demo.gif)
 
 ## Features
 
@@ -20,8 +18,6 @@ Designed for educational purposes to analyze and interpret outputs (greeks, vola
 * **Monte Carlo Simulation :** Stochastic pricing with variance reduction techniques (Antithetic & Control Variates) and convergence analysis.
 * **Interactive UI :** Built with Streamlit for dynamic parameter adjustment.
 * **Interactive UX :** Built with Streamlit for understanding results issues.
-
----
 
 ## Project Structure
 
@@ -43,7 +39,8 @@ Designed for educational purposes to analyze and interpret outputs (greeks, vola
 ├── LICENSE                     # Project license
 └── README.md                   # Documentation
 ```
----
+
+## Connect & Credits
 
 <p align="center">
 
