@@ -113,16 +113,16 @@ if selected_page == "🏠 Home" or selected_page == "---":
 
 elif selected_page == "📜 Black-Scholes":
     with st.spinner("Please wait, the engine is loading..."):
-        from app.views.bs_view import render_bs 
+        from src.app.views.bs_view import render_bs 
         render_bs()
 elif selected_page == "🌳 Binomial Tree":
     with st.spinner("Please wait, the engine is loading..."):
-        from app.views.bino_view import render_american
+        from src.app.views.bino_view import render_american
         render_american()
 elif selected_page == "🎲 Monte Carlo":
     with st.spinner("Please wait, the engine is loading..."):
         try:
-            from app.views.mc_view import render_mc
+            from src.app.views.mc_view import render_mc
             render_mc()
         except ImportError:
             st.error("🚧 The Monte Carlo module is currently under construction. Please check back later !")
