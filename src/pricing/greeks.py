@@ -1,6 +1,6 @@
 import numpy as np
 from scipy.stats import norm
-from pricing.binomial import binomial_option_pricing
+from src.pricing.binomial import binomial_option_pricing
 
 #######################################################
     ########## Calcul Greeks BS ###########
