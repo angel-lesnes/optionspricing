@@ -47,6 +47,34 @@ Designed for educational purposes to analyze and interpret outputs (greeks, vola
 └── README.md                   # Documentation
 ```
 
+## Local use 
+
+### Clone the project
+
+git clone <https://github.com/angel-lesnes/optionspricing>
+cd <optionspricing>
+
+### Activate venv
+
+For Windows :
+
+python -m venv venv
+.\venv\Scripts\activate
+
+For MacOS / Linux :
+
+python3 -m venv venv
+source venv/bin/activate
+
+### Install dependencies
+
+pip install --upgrade pip
+pip install -r requirements.txt
+
+### Launch app
+
+streamlit run .\src\app\streamlit_app.py
+
 ## Connect & Credits
 
 <p align="center">
