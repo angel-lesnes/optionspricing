@@ -11,6 +11,8 @@
   </a>
 </p>
 
+**This URL is not currently working. I am working on it so that the site can be deployed correctly as soon as possible. Please clone the project and run it locally as described in the "Local use" section below.**
+
 An interactive dashboard to price financial options using various mathematical models and compare to market datas. 
 Designed for educational purposes to analyze and interpret outputs (greeks, volatility, convergence, etc.)
 
