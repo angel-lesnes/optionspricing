@@ -54,7 +54,7 @@ Designed for educational purposes to analyze and interpret outputs (greeks, vola
 ### Clone the project
 
 git clone <https://github.com/angel-lesnes/optionspricing>
-cd <optionspricing>
+cd optionspricing
 
 ### Activate venv
 
@@ -76,6 +76,10 @@ pip install -r requirements.txt
 ### Launch app
 
 streamlit run .\src\app\streamlit_app.py
+
+### Error : "Error data: Too Many Requests. Rate limited. Try after a while."
+
+If this error occurs, try updating yfinance using: pip install yfinance --upgrade
 
 ## Connect & Credits
 
